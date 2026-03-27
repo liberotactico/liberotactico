@@ -25,6 +25,13 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <style>
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}
+</style>
 
 <style>
 :root{
@@ -12236,7 +12243,19 @@ function makeEditable(el){
 function resetPreviewLayout(){ previewReset(); }
 
 // Download PDF from preview
-function downloadPDF(){ previewPrint(); }
+function downloadPDF() {
+  const element = document.getElementById('preview-content');
+
+  const opt = {
+    margin: 0.5,
+    filename: 'reporte-libero-tactico.pdf',
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true },
+    jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+  };
+
+  html2pdf().set(opt).from(element).save();
+}
 function _downloadPDF_legacy(){
   const content = document.getElementById('preview-content').innerHTML;
   const sheets = Array.from(document.styleSheets).flatMap(s=>{
