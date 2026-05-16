@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="icon" type="image/png" sizes="192x192" href="favicon-192.png">
+  <link rel="apple-touch-icon" href="favicon-192.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Página no encontrada — Líbero Táctico</title>
+  <meta name="theme-color" content="#08090d">
+  <link rel="manifest" href="manifest.json">
+  <meta name="robots" content="noindex, nofollow">
+
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;500;600;700&family=Barlow+Condensed:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background: var(--bg);
+      color: var(--txt);
+      font-family: var(--body);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      text-align: center;
+      padding: 24px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .bg-grid {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      background-image:
+        linear-gradient(rgba(57,232,112,.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(57,232,112,.02) 1px, transparent 1px);
+      background-size: 44px 44px;
+    }
+
+    .bg-glow {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+    .bg-glow::before {
+      content: '';
+      position: absolute;
+      top: 15%;
+      left: -8%;
+      width: 520px;
+      height: 520px;
+      background: radial-gradient(circle, rgba(57,232,112,.05) 0%, transparent 65%);
+    }
+    .bg-glow::after {
+      content: '';
+      position: absolute;
+      bottom: 5%;
+      right: -8%;
+      width: 480px;
+      height: 480px;
+      background: radial-gradient(circle, rgba(255,62,94,.04) 0%, transparent 65%);
+    }
+
+    .notfound-wrap {
+      position: relative;
+      z-index: 1;
+      max-width: 480px;
+      animation: fadeUp .45s cubic-bezier(.16,1,.3,1) both;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .notfound-code {
+      font-family: var(--title);
+      font-size: 120px;
+      line-height: 1;
+      color: var(--green);
+      text-shadow: 0 0 60px rgba(57,232,112,.25);
+      margin-bottom: 8px;
+      letter-spacing: -4px;
+    }
+
+    .notfound-title {
+      font-family: var(--cond);
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--wht);
+      margin-bottom: 16px;
+    }
+
+    .notfound-desc {
+      color: var(--mut);
+      font-size: 15px;
+      line-height: 1.65;
+      margin-bottom: 36px;
+    }
+
+    .notfound-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="bg-grid"></div>
+  <div class="bg-glow"></div>
+
+  <nav class="navbar" id="navbar">
+    <div class="navbar__inner">
+      <a href="index.html" class="navbar__brand">
+        <span class="navbar__logo">
+          <img src="logo.png" alt="Líbero Táctico" class="navbar__logo-img"
+               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+          <svg class="navbar__logo-svg" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:none">
+            <rect width="36" height="36" rx="7" fill="#0e1018"/>
+            <rect x="2" y="2" width="32" height="32" rx="5" fill="none" stroke="#39e870" stroke-width="1.5"/>
+            <text x="18" y="23" font-family="Arial" font-size="14" font-weight="bold" fill="#39e870" text-anchor="middle">LT</text>
+          </svg>
+        </span>
+        <span class="navbar__wordmark">
+          <span class="navbar__name">LÍBERO TÁCTICO</span>
+          <span class="navbar__tagline">Ecosistema futbolístico</span>
+        </span>
+      </a>
+      <div class="navbar__actions" style="margin-left:auto">
+        <a href="login.html" class="btn btn--ghost btn--sm">Iniciar sesión</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="notfound-wrap">
+
+    <div class="notfound-code">404</div>
+    <div class="notfound-title">Página no encontrada</div>
+    <p class="notfound-desc">
+      La página que buscas no existe o fue movida.<br>
+      Puedes volver al inicio o acceder directamente a la plataforma.
+    </p>
+
+    <div class="notfound-actions">
+      <a href="index.html" class="btn btn--primary btn--sm">← Volver al inicio</a>
+      <a href="login.html" class="btn btn--ghost btn--sm">Ir al acceso</a>
+    </div>
+
+  </div>
+
+  <footer class="footer" style="position:relative;z-index:1">
+    <div class="container">
+      <div class="footer__inner">
+        <div class="footer__brand">
+          <img src="logo.png" alt="Líbero Táctico" style="height:32px;width:32px;object-fit:contain;flex-shrink:0"
+               onerror="this.outerHTML='<svg width=\'32\' height=\'32\' viewBox=\'0 0 36 36\' fill=\'none\' style=\'flex-shrink:0\'><rect width=\'36\' height=\'36\' rx=\'7\' fill=\'#0e1018\'/><rect x=\'2\' y=\'2\' width=\'32\' height=\'32\' rx=\'5\' fill=\'none\' stroke=\'#39e870\' stroke-width=\'1.5\'/><text x=\'18\' y=\'23\' font-family=\'Arial\' font-size=\'14\' font-weight=\'bold\' fill=\'#39e870\' text-anchor=\'middle\'>LT</text></svg>'">
+          <div>
+            <div class="footer__name">LÍBERO TÁCTICO</div>
+            <div class="footer__tagline">Ecosistema futbolístico profesional</div>
+          </div>
+        </div>
+        <nav class="footer__links">
+          <a href="index.html#que-es" class="footer__link">El sistema</a>
+          <a href="index.html#modulos" class="footer__link">Módulos</a>
+          <a href="login.html" class="footer__link">Acceso</a>
+          <div style="display:flex;gap:8px;margin-top:12px">
+            <a href="privacy.html" style="color:var(--mut);text-decoration:none;font-size:11px">Privacidad</a>
+            <span style="color:var(--mut)">·</span>
+            <a href="terms.html" style="color:var(--mut);text-decoration:none;font-size:11px">Términos</a>
+          </div>
+        </nav>
+        <div class="footer__meta">
+          <p class="footer__copy">© 2025–2026 Líbero Táctico. Todos los derechos reservados.</p>
+          <a href="mailto:contacto@liberotactico.com" class="footer__email">contacto@liberotactico.com</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    const navbar = document.getElementById('navbar');
+    window.addEventListener('scroll', () => {
+      navbar.classList.toggle('scrolled', window.scrollY > 10);
+    });
+  </script>
+
+</body>
+</html>

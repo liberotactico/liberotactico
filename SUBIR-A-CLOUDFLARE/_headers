@@ -1,0 +1,25 @@
+# Líbero Táctico — Cloudflare Pages headers
+# https://developers.cloudflare.com/pages/configuration/headers/
+
+/*
+  X-Frame-Options: SAMEORIGIN
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(), camera=(), microphone=(), payment=(), usb=()
+  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://jurtjxpobuhenfcyafcc.supabase.co https://*.supabase.co https://img.youtube.com; media-src 'self' blob: https://*.supabase.co; connect-src 'self' https://jurtjxpobuhenfcyafcc.supabase.co https://*.supabase.co wss://*.supabase.co https://api.resend.com https://www.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; frame-src https://www.youtube.com https://youtube.com https://www.youtube-nocookie.com; frame-ancestors 'self'; base-uri 'self'; form-action 'self'
+
+# Las API responses no deben cachearse en CDN — son privadas por usuario.
+/api/*
+  Cache-Control: no-store
+  X-Frame-Options: DENY
+
+# Las páginas HTML pueden cachearse cortito (revalidate al volver)
+/*.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+# Assets versionados pueden cachearse fuerte
+/*.js
+  Cache-Control: public, max-age=300
+/*.css
+  Cache-Control: public, max-age=300

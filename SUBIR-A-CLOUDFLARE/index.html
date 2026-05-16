@@ -1,0 +1,1405 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="icon" type="image/png" sizes="192x192" href="favicon-192.png">
+  <link rel="apple-touch-icon" href="favicon-192.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#08090d">
+  <title>Líbero Táctico — El sistema operativo del cuerpo técnico</title>
+  <meta name="description" content="Líbero Táctico — Plataforma de análisis táctico para fútbol. Gestión de jugadores, sistemas tácticos, informes y pizarra táctica digital.">
+
+  <!-- SEO & Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://liberotactico.com/">
+  <meta property="og:title" content="Líbero Táctico — Análisis Táctico de Fútbol">
+  <meta property="og:description" content="Plataforma profesional de análisis táctico: gestión de plantillas, sistemas tácticos, informes PDF y pizarra digital.">
+  <meta property="og:image" content="https://liberotactico.com/favicon-192.png">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Líbero Táctico">
+  <meta name="twitter:description" content="Análisis táctico profesional para fútbol.">
+  <link rel="canonical" href="https://liberotactico.com/">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Líbero Táctico",
+    "applicationCategory": "SportsApplication",
+    "description": "Plataforma de análisis táctico para fútbol",
+    "url": "https://liberotactico.com",
+    "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}
+  }
+  </script>
+
+  <!-- Favicon SVG inline -->
+
+  <!-- Fonts — same as app -->
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;500;600;700&family=Barlow+Condensed:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* ── Fondo más oscuro ──────────────────────────────────────────── */
+    :root {
+      --bg:  #050609;
+      --bg2: #0b0d14;
+      --bg3: #11131c;
+      --bg4: #171924;
+      --brd: #1e2138;
+      /* Color de acento dinámico — se cambia via JS al scrollear */
+      --pa: #ff9c2a;
+    }
+    body { background: var(--bg); }
+
+    /* ── Badge hero — gradiente multicolor, no sigue --pa ──────────── */
+    .hero__badge {
+      background: rgba(255,255,255,0.03) !important;
+      border-color: rgba(255,255,255,0.08) !important;
+      background-image: linear-gradient(90deg, #ff9c2a 0%, #ff3e5e 50%, #a78bfa 100%) !important;
+      -webkit-background-clip: text !important;
+      background-clip: text !important;
+      -webkit-text-fill-color: transparent !important;
+      color: transparent !important;
+      will-change: auto;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      transform: translateZ(0);
+    }
+    .hero__badge-dot {
+      background: #ff9c2a !important;
+      box-shadow: 0 0 8px #ff9c2a !important;
+      -webkit-text-fill-color: initial !important;
+      flex-shrink: 0;
+    }
+
+    /* ── Resto del hero y globales siguen --pa ──────────────────────── */
+    .hero__headline span                     { color: var(--pa) !important; }
+    .hero__scroll-line                       { background: linear-gradient(to bottom, var(--pa), transparent) !important; }
+    .btn--primary                            { background: var(--pa) !important; border-color: var(--pa) !important; color: #08090d !important; }
+    .btn--outline-accent                     { color: var(--pa) !important; border-color: rgba(255,156,42,.35) !important; }
+    .btn--outline-accent:hover               { background: rgba(255,156,42,.07) !important; }
+    .navbar.scrolled                         { border-bottom-color: rgba(255,156,42,.12) !important; }
+    .navbar__progress                        { background: linear-gradient(90deg, #ff9c2a, #ff3e5e, #a78bfa) !important; }
+
+    /* ── Acento activo por módulo ──────────────────────────────────── */
+    .module-card--accent  { --mc: #39e870; }
+    .module-card--orange  { --mc: #ff9c2a; }
+    .module-card--cyan    { --mc: #3dc8f5; }
+    .module-card--red     { --mc: #ff3e5e; }
+    .module-card--purple  { --mc: #a78bfa; }
+    .module-card--yellow  { --mc: #ffd93e; }
+
+    .module-card--accent::before  { background: #39e870; }
+    .module-card--purple::before  { background: #a78bfa; }
+    .module-card--purple:hover    { border-color: rgba(167,139,250,.3); }
+
+    .module-card__number  { color: color-mix(in srgb, var(--mc,#39e870) 20%, transparent) !important; }
+    .module-card__name    { color: var(--mc, #eef0fa); }
+
+    /* ── Features list dentro de tarjeta ──────────────────────────── */
+    .module-card__features {
+      list-style: none;
+      margin: 14px 0 0;
+      padding: 0;
+      border-top: 1px solid rgba(255,255,255,.05);
+      padding-top: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .module-card__features li {
+      font-size: 12px;
+      color: #7a80a0;
+      display: flex;
+      align-items: flex-start;
+      gap: 7px;
+      line-height: 1.4;
+    }
+    .module-card__features li::before {
+      content: '';
+      display: inline-block;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--mc, #39e870);
+      flex-shrink: 0;
+      margin-top: 4px;
+      opacity: .7;
+    }
+
+    /* ── Hero glow — gradiente fijo multicolor ──────────────────────── */
+    .hero__glow {
+      background: radial-gradient(ellipse 80% 55% at 50% 85%,
+        rgba(255,156,42,0.08) 0%,
+        rgba(255,62,94,0.05) 50%,
+        transparent 70%) !important;
+    }
+
+    /* ── Hero grid — cicla colores de módulos ───────────────────────── */
+    @keyframes ltGridFade {
+      0%,100% { opacity: 0.6; }
+      50%     { opacity: 1; }
+    }
+    .hero__grid {
+      background-image: linear-gradient(rgba(255,156,42,.03) 1px,transparent 1px), linear-gradient(90deg,rgba(255,156,42,.03) 1px,transparent 1px) !important;
+      animation: ltGridFade 12s ease-in-out infinite !important;
+      will-change: opacity;
+    }
+
+    /* ── Navbar — tagline sigue --pa con transición ─────────────────── */
+    .navbar__tagline {
+      color: var(--pa) !important;
+      transition: color 0.5s ease;
+    }
+    .navbar__link:hover { color: var(--pa) !important; }
+
+    /* ── Tarjetas — hover glow por color de módulo ──────────────────── */
+    .module-card { transition: transform 0.25s, box-shadow 0.3s, border-color 0.3s !important; }
+    .module-card--accent:hover { box-shadow: 0 24px 60px rgba(0,0,0,.5), 0 0 35px rgba(57,232,112,.14), 0 0 0 1px rgba(57,232,112,.28) !important; }
+    .module-card--orange:hover { box-shadow: 0 24px 60px rgba(0,0,0,.5), 0 0 35px rgba(255,156,42,.16), 0 0 0 1px rgba(255,156,42,.32) !important; }
+    .module-card--cyan:hover   { box-shadow: 0 24px 60px rgba(0,0,0,.5), 0 0 35px rgba(61,200,245,.14), 0 0 0 1px rgba(61,200,245,.28) !important; }
+    .module-card--red:hover    { box-shadow: 0 24px 60px rgba(0,0,0,.5), 0 0 35px rgba(255,62,94,.14),  0 0 0 1px rgba(255,62,94,.28)  !important; }
+    .module-card--purple:hover { box-shadow: 0 24px 60px rgba(0,0,0,.5), 0 0 35px rgba(167,139,250,.14),0 0 0 1px rgba(167,139,250,.28) !important; }
+    .module-card--yellow:hover { box-shadow: 0 24px 60px rgba(0,0,0,.5), 0 0 35px rgba(255,217,62,.14), 0 0 0 1px rgba(255,217,62,.28)  !important; }
+    /* Feature dots también se intensifican */
+    .module-card:hover .module-card__features li::before { opacity: 1; }
+    .module-card:hover .module-card__features li { color: #9aa0c0; }
+
+    /* ── Labels de secciones — color propio por sección ────────────── */
+    .whatis .label:not([class*="--"]) {
+      color: #ff9c2a !important; background: rgba(255,156,42,.06) !important; border-color: rgba(255,156,42,.2) !important;
+    }
+    .modules .label:not([class*="--"]) {
+      color: #ff3e5e !important; background: rgba(255,62,94,.06) !important; border-color: rgba(255,62,94,.2) !important;
+    }
+
+    /* ── Typewriter cursor en subheadline ────────────────────────────── */
+    @keyframes ltBlink { 0%,100%{opacity:1} 50%{opacity:0} }
+    .lt-typing::after {
+      content: '|';
+      color: var(--pa);
+      animation: ltBlink 0.65s step-end infinite;
+      margin-left: 2px;
+      font-weight: 300;
+      will-change: opacity;
+    }
+
+    /* ── Stat bar — valor se muestra grande al entrar en vista ──────── */
+    .statsbar__value { transition: color 0.4s ease; }
+  </style>
+</head>
+<body>
+
+  <!-- ======================================================
+       NAVBAR
+  ====================================================== -->
+  <nav class="navbar" id="navbar">
+    <div class="navbar__inner">
+      <a href="index.html" class="navbar__brand">
+        <span class="navbar__logo">
+          <img src="logo.png" alt="Líbero Táctico" class="navbar__logo-img"
+               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+          <svg class="navbar__logo-svg" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:none">
+            <rect width="36" height="36" rx="7" fill="#0e1018"/>
+            <rect x="2" y="2" width="32" height="32" rx="5" fill="none" stroke="#39e870" stroke-width="1.5"/>
+            <text x="18" y="23" font-family="Arial" font-size="14" font-weight="bold" fill="#39e870" text-anchor="middle">LT</text>
+          </svg>
+        </span>
+        <span class="navbar__wordmark">
+          <span class="navbar__name">LÍBERO TÁCTICO</span>
+          <span class="navbar__tagline">Ecosistema futbolístico</span>
+        </span>
+      </a>
+
+      <nav class="navbar__nav" id="navMenu">
+        <a href="#que-es"    class="navbar__link" onclick="closeMenu()">El sistema</a>
+        <a href="#modulos"   class="navbar__link" onclick="closeMenu()">Módulos</a>
+        <a href="#valor"     class="navbar__link" onclick="closeMenu()">Valor</a>
+        <a href="#para-quien" class="navbar__link" onclick="closeMenu()">Para quién</a>
+        <a href="#faq"       class="navbar__link" onclick="closeMenu()">FAQ</a>
+      </nav>
+
+      <div class="navbar__actions">
+        <a href="login.html" class="btn btn--ghost btn--sm">Iniciar sesión</a>
+        <button class="btn btn--primary btn--sm" onclick="openModal()">Agendar reunión</button>
+      </div>
+
+      <!-- Hamburger (mobile only) -->
+      <button class="navbar__burger" id="navBurger" onclick="toggleMenu()" aria-label="Menú">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+
+    <!-- Mobile menu drawer -->
+    <div class="navbar__drawer" id="navDrawer">
+      <a href="#que-es"    class="drawer__link" onclick="closeMenu()">El sistema</a>
+      <a href="#modulos"   class="drawer__link" onclick="closeMenu()">Módulos</a>
+      <a href="#valor"     class="drawer__link" onclick="closeMenu()">Valor</a>
+      <a href="#para-quien" class="drawer__link" onclick="closeMenu()">Para quién</a>
+      <a href="#faq"       class="drawer__link" onclick="closeMenu()">FAQ</a>
+      <div class="drawer__actions">
+        <a href="login.html" class="btn btn--ghost" style="width:100%;justify-content:center">Iniciar sesión</a>
+        <button class="btn btn--primary" style="width:100%;justify-content:center" onclick="closeMenu();openModal()">Agendar reunión</button>
+      </div>
+    </div>
+  </nav>
+
+
+  <!-- ======================================================
+       HERO
+  ====================================================== -->
+  <section class="hero">
+    <div class="hero__bg">
+      <div class="hero__grid"></div>
+      <div class="hero__glow"></div>
+    </div>
+
+    <div class="container">
+      <div class="hero__inner">
+
+        <div class="hero__badge">
+          <span class="hero__badge-dot"></span>
+          Plataforma profesional de análisis futbolístico
+        </div>
+
+        <h1 class="hero__headline">
+          El sistema operativo<br>del <span>cuerpo técnico</span>
+        </h1>
+
+        <p class="hero__subheadline" id="lt-hero-sub" style="min-height:2.8em;opacity:0;transition:opacity .5s">
+          Centraliza análisis, rendimiento y gestión del plantel
+          en una sola plataforma. Decisiones más rápidas, trabajo más preciso.
+        </p>
+
+        <div class="hero__actions">
+          <a href="login.html" class="btn btn--primary btn--lg">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+            Iniciar sesión
+          </a>
+          <button class="btn btn--outline-accent btn--lg" onclick="openModal()">
+            Agendar reunión
+          </button>
+        </div>
+
+        <div class="hero__scroll-hint">
+          <div class="hero__scroll-line"></div>
+          Explorar plataforma
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ======================================================
+       STATS BAR
+  ====================================================== -->
+  <div class="statsbar">
+    <div class="container">
+      <div class="statsbar__inner">
+        <div class="statsbar__item">
+          <span class="statsbar__value">6<span>+</span></span>
+          <span class="statsbar__desc">Módulos integrados</span>
+        </div>
+        <div class="statsbar__item">
+          <span class="statsbar__value">1<span> sola</span></span>
+          <span class="statsbar__desc">Plataforma unificada</span>
+        </div>
+        <div class="statsbar__item">
+          <span class="statsbar__value">100<span>%</span></span>
+          <span class="statsbar__desc">Enfocada en fútbol</span>
+        </div>
+        <div class="statsbar__item">
+          <span class="statsbar__value">🧠</span>
+          <span class="statsbar__desc">Análisis inteligente automático</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ======================================================
+       QUÉ ES EL PRODUCTO
+  ====================================================== -->
+  <section class="section whatis" id="que-es">
+    <div class="container">
+      <div class="whatis__inner">
+
+        <div class="whatis__content">
+          <span class="label">El sistema</span>
+          <h2 class="whatis__title">Esto no es solo software</h2>
+          <p class="whatis__body">
+            Líbero Táctico es un <strong>ecosistema de trabajo técnico</strong> diseñado
+            para los cuerpos técnicos que necesitan más que una hoja de cálculo
+            y menos que un departamento de análisis de 10 personas.
+          </p>
+          <p class="whatis__body">
+            Es la infraestructura que conecta el análisis rival, el rendimiento del equipo,
+            el scouting, la evaluación y la toma de decisiones del CT —
+            <strong>todo en un mismo lugar, con coherencia y velocidad.</strong>
+          </p>
+
+          <div class="whatis__pillars">
+            <div class="pillar">
+              <div class="pillar__icon">🗂</div>
+              <div class="pillar__text">
+                <div class="pillar__name">Todo centralizado, exportable cuando lo necesitas</div>
+                <div class="pillar__desc">Cada módulo genera informes en PDF listos para enviar al DT, directivo o representante. Profesional desde el primer clic.</div>
+              </div>
+            </div>
+            <div class="pillar">
+              <div class="pillar__icon">📋</div>
+              <div class="pillar__text">
+                <div class="pillar__name">Del análisis a la cancha</div>
+                <div class="pillar__desc">El analista arma el diagnóstico, las tareas de entrenamiento y el microciclo. El DT lo recibe listo para ejecutar.</div>
+              </div>
+            </div>
+            <div class="pillar">
+              <div class="pillar__icon">🗓</div>
+              <div class="pillar__text">
+                <div class="pillar__name">Planificación semanal con horarios reales</div>
+                <div class="pillar__desc">Organiza la semana con actividades por hora: gym, vendaje, entrenamiento, video rival. Estructura para cualquier cuerpo técnico.</div>
+              </div>
+            </div>
+            <div class="pillar">
+              <div class="pillar__icon">🎯</div>
+              <div class="pillar__text">
+                <div class="pillar__name">Decisiones basadas en datos</div>
+                <div class="pillar__desc">Cada módulo alimenta el siguiente. La información fluye sin fricción de un área a otra.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Visual: card stack con módulos reales -->
+        <div class="whatis__visual">
+          <div class="whatis__card-stack">
+
+            <div class="stack-card">
+              <div class="stack-card__tag">Rendimiento · Análisis inteligente por partido</div>
+              <div class="stack-card__title">Partido vs promedio histórico</div>
+              <div class="stack-card__bars" style="margin-top:10px">
+                <div class="bar-row">
+                  <span class="bar-label" style="width:110px;font-size:10px">xG prom./partido</span>
+                  <div class="bar-track"><div class="bar-fill" style="width:72%"></div></div>
+                  <span class="bar-val" style="color:#39e870;font-size:11px">1.8</span>
+                </div>
+                <div class="bar-row">
+                  <span class="bar-label" style="width:110px;font-size:10px">Posesión %</span>
+                  <div class="bar-track"><div class="bar-fill bar-fill--cyan" style="width:54%"></div></div>
+                  <span class="bar-val" style="color:#3dc8f5;font-size:11px">54%</span>
+                </div>
+                <div class="bar-row">
+                  <span class="bar-label" style="width:110px;font-size:10px">Pases compl. %</span>
+                  <div class="bar-track"><div class="bar-fill bar-fill--orange" style="width:82%"></div></div>
+                  <span class="bar-val" style="color:#ff9c2a;font-size:11px">82%</span>
+                </div>
+                <div class="bar-row">
+                  <span class="bar-label" style="width:110px;font-size:10px">Recuperaciones</span>
+                  <div class="bar-track"><div class="bar-fill bar-fill--red" style="width:56%"></div></div>
+                  <span class="bar-val" style="color:#ff3e5e;font-size:11px">28</span>
+                </div>
+              </div>
+              <div style="margin-top:12px;padding-top:10px;border-top:1px solid #222540;display:flex;gap:16px">
+                <div style="text-align:center">
+                  <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:#39e870;line-height:1">6</div>
+                  <div style="font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:2px;color:#5a6080;text-transform:uppercase">PG</div>
+                </div>
+                <div style="text-align:center">
+                  <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:#ffd93e;line-height:1">2</div>
+                  <div style="font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:2px;color:#5a6080;text-transform:uppercase">PE</div>
+                </div>
+                <div style="text-align:center">
+                  <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:#ff3e5e;line-height:1">2</div>
+                  <div style="font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:2px;color:#5a6080;text-transform:uppercase">PP</div>
+                </div>
+                <div style="text-align:center;margin-left:auto">
+                  <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:#eef0fa;line-height:1">20</div>
+                  <div style="font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:2px;color:#5a6080;text-transform:uppercase">Pts</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="stack-card">
+              <div class="stack-card__tag">Análisis Rival · 09</div>
+              <div class="stack-card__title">Conclusiones y estrategia</div>
+            </div>
+
+            <div class="stack-card">
+              <div class="stack-card__tag">Recomendaciones CT · 04</div>
+              <div class="stack-card__title">Microciclo semanal</div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ======================================================
+       MÓDULOS
+  ====================================================== -->
+  <section class="section modules" id="modulos">
+    <div class="container">
+
+      <div class="modules__header">
+        <span class="label">Módulos del sistema</span>
+        <h2 class="modules__title">Todo lo que necesita tu CT</h2>
+        <p class="modules__subtitle">Seis módulos especializados. Una sola plataforma. Sin duplicar trabajo entre herramientas.</p>
+      </div>
+
+      <div class="modules__grid">
+
+        <!-- 1. Rendimiento -->
+        <div class="module-card module-card--accent">
+          <div class="module-card__icon">📊</div>
+          <div class="module-card__number">01</div>
+          <div class="module-card__name">Análisis de rendimiento</div>
+          <p class="module-card__desc">
+            Post-partido completo: analiza el equipo por fases, genera métricas, evalúa jugadores y construye el plan para el siguiente microciclo.
+          </p>
+          <ul class="module-card__features">
+            <li>10 secciones: fases ofensiva, defensiva, transiciones y ABP</li>
+            <li>Red de rendimiento con 8 métricas (xG, pressing, posesión...)</li>
+            <li>Once inicial + fases tácticas en pizarra digital</li>
+            <li>Calificaciones individuales y conclusiones con plan de trabajo</li>
+          </ul>
+        </div>
+
+        <!-- 2. Análisis rival -->
+        <div class="module-card module-card--orange">
+          <div class="module-card__icon">🔍</div>
+          <div class="module-card__number">02</div>
+          <div class="module-card__name">Análisis rival</div>
+          <p class="module-card__desc">
+            Informe pre-partido del próximo rival. Sistema defensivo y ofensivo, jugadas a balón parado y referencias individuales. Listo para presentar al plantel.
+          </p>
+          <ul class="module-card__features">
+            <li>Pizarra interactiva con once y fases tácticas del rival</li>
+            <li>Jugadas de ABP: córners, tiros libres, saques de banda</li>
+            <li>Referencias individuales de jugadores clave</li>
+            <li>Exportable a PDF para presentar antes del partido</li>
+          </ul>
+        </div>
+
+        <!-- 3. Scouting -->
+        <div class="module-card module-card--cyan">
+          <div class="module-card__icon">👁</div>
+          <div class="module-card__number">03</div>
+          <div class="module-card__name">Scouting</div>
+          <p class="module-card__desc">
+            Ficha completa por jugador con criterios por posición y veredicto final. Para rivales, plantel propio, fútbol formativo o mercado.
+          </p>
+          <ul class="module-card__features">
+            <li>Criterios tácticos adaptados a cada posición</li>
+            <li>Observación en vivo, video o mixta</li>
+            <li>Veredicto con nota global y recomendación</li>
+            <li>Base de datos organizada por club con historial</li>
+          </ul>
+        </div>
+
+        <!-- 4. Evaluación -->
+        <div class="module-card module-card--red">
+          <div class="module-card__icon">📋</div>
+          <div class="module-card__number">04</div>
+          <div class="module-card__name">Evaluación</div>
+          <p class="module-card__desc">
+            Tabla de evaluación del plantel con sistema táctico, modelo de juego y ficha individual 360°. Historial de partidos y multimedia integrada.
+          </p>
+          <ul class="module-card__features">
+            <li>Evaluación por criterios tácticos y físicos</li>
+            <li>Modelo de juego: principios ofensivos y defensivos</li>
+            <li>Ficha individual 360° por jugador</li>
+            <li>Historial de partidos con video y notas</li>
+          </ul>
+        </div>
+
+        <!-- 5. Data -->
+        <div class="module-card module-card--purple">
+          <div class="module-card__icon">📈</div>
+          <div class="module-card__number">05</div>
+          <div class="module-card__name">Data & visualización</div>
+          <p class="module-card__desc">
+            Dashboard unificado del plantel. Comparador de jugadores, tabla estadística y métricas avanzadas. Todo en un lugar, sin exportar a ningún lado.
+          </p>
+          <ul class="module-card__features">
+            <li>Dashboard central con métricas del plantel</li>
+            <li>Comparador de jugadores por categoría</li>
+            <li>Tabla estadística por partido, torneo o temporada</li>
+            <li>Gráficos de tendencia y evolución individual</li>
+          </ul>
+        </div>
+
+        <!-- 6. Recomendaciones CT -->
+        <div class="module-card module-card--yellow">
+          <div class="module-card__icon">💡</div>
+          <div class="module-card__number">06</div>
+          <div class="module-card__name">Recomendaciones CT</div>
+          <p class="module-card__desc">
+            El analista arma el diagnóstico táctico, las tareas por fase y el microciclo semanal. El DT lo recibe todo listo para ejecutar.
+          </p>
+          <ul class="module-card__features">
+            <li>Diagnóstico táctico por fase de juego</li>
+            <li>Tareas de entrenamiento por categoría</li>
+            <li>Microciclo semanal con horarios reales</li>
+            <li>Funciona para un analista solo o con todo el CT</li>
+          </ul>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ======================================================
+       FLUJO DE TRABAJO
+  ====================================================== -->
+  <section class="section workflow">
+    <div class="container">
+
+      <div class="workflow__header">
+        <span class="label label--cyan">Cómo funciona</span>
+        <h2 class="workflow__title">Del análisis a la cancha, en un solo sistema</h2>
+        <p class="workflow__subtitle">
+          Cada rol del cuerpo técnico tiene su lugar. El sistema conecta el trabajo
+          de análisis con la planificación y la toma de decisiones del entrenador.
+        </p>
+      </div>
+
+      <!-- ROLES -->
+      <div class="workflow__roles">
+        <div class="role-pill role-pill--green">Analista táctico</div>
+        <div class="role-pill role-pill--cyan">Analista de rival</div>
+        <div class="role-pill role-pill--orange">Analista de rendimiento</div>
+        <div class="role-pill role-pill--red">Asistente técnico</div>
+        <div class="role-pill role-pill--mut">Entrenador en solitario</div>
+      </div>
+      <div class="workflow__roles-label">cualquiera de estos roles puede generar el siguiente flujo →</div>
+
+      <!-- STEPS -->
+      <div class="workflow__steps">
+
+        <div class="workflow__step">
+          <div class="wf-step__num">01</div>
+          <div class="wf-step__icon">🔍</div>
+          <div class="wf-step__title">Analiza</div>
+          <p class="wf-step__desc">
+            Carga el análisis del rival, el rendimiento del equipo o el scouting
+            de jugadores. Cada módulo tiene su estructura y genera su informe en PDF.
+          </p>
+          <div class="wf-step__tags">
+            <span class="wf-tag wf-tag--green">Análisis rival</span>
+            <span class="wf-tag wf-tag--red">Rendimiento</span>
+            <span class="wf-tag wf-tag--orange">Scouting</span>
+          </div>
+        </div>
+
+        <div class="workflow__arrow">→</div>
+
+        <div class="workflow__step">
+          <div class="wf-step__num">02</div>
+          <div class="wf-step__icon">🧠</div>
+          <div class="wf-step__title">Diagnostica</div>
+          <p class="wf-step__desc">
+            Con base en el análisis, elabora un diagnóstico táctico y técnico del equipo.
+            Detecta problemas, identifica fortalezas y define objetivos para la semana.
+          </p>
+          <div class="wf-step__tags">
+            <span class="wf-tag wf-tag--purple">Diagnóstico CT</span>
+            <span class="wf-tag wf-tag--yellow">Evaluación</span>
+          </div>
+        </div>
+
+        <div class="workflow__arrow">→</div>
+
+        <div class="workflow__step">
+          <div class="wf-step__num">03</div>
+          <div class="wf-step__icon">📋</div>
+          <div class="wf-step__title">Planifica</div>
+          <p class="wf-step__desc">
+            Crea las tareas de entrenamiento por fase ofensiva y defensiva,
+            organiza el microciclo semanal y programa los horarios del plantel día por día.
+          </p>
+          <div class="wf-step__tags">
+            <span class="wf-tag wf-tag--purple">Tareas ofensivas</span>
+            <span class="wf-tag wf-tag--purple">Tareas defensivas</span>
+            <span class="wf-tag wf-tag--purple">Microciclo</span>
+          </div>
+        </div>
+
+        <div class="workflow__arrow">→</div>
+
+        <div class="workflow__step wf-step--highlight">
+          <div class="wf-step__num">04</div>
+          <div class="wf-step__icon">⚡</div>
+          <div class="wf-step__title">El DT ejecuta</div>
+          <p class="wf-step__desc">
+            El entrenador recibe todo listo: diagnóstico, tareas concretas y la
+            programación hora a hora de la semana. Sin reuniones de 2 horas para transferir información.
+          </p>
+          <div class="wf-step__tags">
+            <span class="wf-tag wf-tag--green">PDF exportable</span>
+            <span class="wf-tag wf-tag--green">Horarios diarios</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Ejemplo de programación horaria -->
+      <div class="workflow__schedule">
+        <div class="schedule__label">
+          <span class="wf-tag wf-tag--orange" style="font-size:10px">Ejemplo real — Programación microciclo</span>
+        </div>
+        <div class="schedule__grid">
+          <div class="schedule__day">
+            <div class="schedule__day-name">Lunes</div>
+            <div class="schedule__item schedule__item--gym">08:30 · Gym</div>
+            <div class="schedule__item schedule__item--med">09:15 · Vendaje</div>
+            <div class="schedule__item schedule__item--train">10:30 · Entrenamiento fase ofensiva</div>
+            <div class="schedule__item schedule__item--video">Post · Video rival</div>
+          </div>
+          <div class="schedule__day">
+            <div class="schedule__day-name">Martes</div>
+            <div class="schedule__item schedule__item--rest">09:00 · Recuperación</div>
+            <div class="schedule__item schedule__item--train">11:00 · Entrenamiento táctico</div>
+            <div class="schedule__item schedule__item--video">Post · Análisis de rendimiento</div>
+          </div>
+          <div class="schedule__day">
+            <div class="schedule__day-name">Miércoles</div>
+            <div class="schedule__item schedule__item--gym">08:00 · Gym</div>
+            <div class="schedule__item schedule__item--train">10:00 · Entrenamiento ABP</div>
+            <div class="schedule__item schedule__item--med">13:00 · Kinesiología</div>
+          </div>
+          <div class="schedule__day">
+            <div class="schedule__day-name">Jueves</div>
+            <div class="schedule__item schedule__item--train">10:00 · Activación</div>
+            <div class="schedule__item schedule__item--video">12:00 · Charla técnica rival</div>
+          </div>
+          <div class="schedule__day schedule__day--match">
+            <div class="schedule__day-name">Viernes</div>
+            <div class="schedule__item schedule__item--match">🏟 Partido</div>
+          </div>
+        </div>
+        <p class="schedule__note">
+          Cada actividad se puede agregar directamente desde el módulo de Recomendaciones CT
+          y exportar como PDF para distribuir al plantel.
+        </p>
+      </div>
+
+    </div>
+  </section>
+
+
+  <!-- ======================================================
+       VALOR PARA EL CLUB
+  ====================================================== -->
+  <section class="section value" id="valor">
+    <div class="container">
+
+      <div class="value__header">
+        <span class="label label--orange">Valor real</span>
+        <h2 class="value__title">¿Qué cambia con Líbero Táctico?</h2>
+        <p class="value__subtitle">Beneficios concretos para el club y para el cuerpo técnico desde el primer día.</p>
+      </div>
+
+      <div class="value__grid">
+
+        <div class="value-item">
+          <span class="value-item__num">01</span>
+          <div class="value-item__body">
+            <div class="value-item__title">Información centralizada</div>
+            <p class="value-item__desc">
+              Todo el conocimiento del plantel en un solo lugar. No más archivos perdidos,
+              informes en correos o datos en celulares personales. El club tiene memoria institucional.
+            </p>
+          </div>
+        </div>
+
+        <div class="value-item">
+          <span class="value-item__num">02</span>
+          <div class="value-item__body">
+            <div class="value-item__title">Mejores decisiones técnicas</div>
+            <p class="value-item__desc">
+              Las decisiones del CT se apoyan en datos reales, no en intuición sola.
+              Convocatorias, cargas de trabajo y estrategia con respaldo de información.
+            </p>
+          </div>
+        </div>
+
+        <div class="value-item">
+          <span class="value-item__num">03</span>
+          <div class="value-item__body">
+            <div class="value-item__title">Eficiencia del staff</div>
+            <p class="value-item__desc">
+              Menos tiempo operativo, más tiempo estratégico. El analista, el preparador físico
+              y el DT trabajan sobre la misma información en tiempo real.
+            </p>
+          </div>
+        </div>
+
+        <div class="value-item">
+          <span class="value-item__num">04</span>
+          <div class="value-item__body">
+            <div class="value-item__title">Proceso de trabajo estructurado</div>
+            <p class="value-item__desc">
+              Cada módulo guía al usuario a través de un proceso claro. Se reduce el error humano
+              y se garantiza coherencia en los reportes, ciclo a ciclo.
+            </p>
+          </div>
+        </div>
+
+        <div class="value-item">
+          <span class="value-item__num">05</span>
+          <div class="value-item__body">
+            <div class="value-item__title">Seguimiento real del plantel</div>
+            <p class="value-item__desc">
+              Evolución de cada jugador documentada, comparable y exportable.
+              Argumentos concretos para decisiones de renovación, cesión o alta.
+            </p>
+          </div>
+        </div>
+
+        <div class="value-item">
+          <span class="value-item__num">06</span>
+          <div class="value-item__body">
+            <div class="value-item__title">Imagen profesional del club</div>
+            <p class="value-item__desc">
+              Un club que trabaja con una plataforma de este nivel proyecta seriedad.
+              Mejora la relación con jugadores, representantes y directivos.
+            </p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ======================================================
+       PARA QUIÉN ES
+  ====================================================== -->
+  <section class="section forwho" id="para-quien">
+    <div class="container">
+      <div class="forwho__inner">
+
+        <div class="forwho__content">
+          <span class="label label--cyan">Para quién es</span>
+          <h2 class="forwho__title">Construido para quienes trabajan en serio</h2>
+          <p class="forwho__body">
+            No importa si tienes un staff de 8 personas o si eres entrenador y analista al mismo tiempo.
+            Líbero Táctico se adapta a cómo trabajás vos.
+          </p>
+
+          <div class="forwho__profiles">
+            <div class="profile-card">
+              <div class="profile-card__icon">🔬</div>
+              <div class="profile-card__title">Analistas tácticos</div>
+              <p class="profile-card__desc">Preparás el análisis completo y se lo entregás al DT listo para ejecutar: diagnóstico, tareas y microciclo.</p>
+            </div>
+            <div class="profile-card">
+              <div class="profile-card__icon">📐</div>
+              <div class="profile-card__title">Entrenadores con ayudante</div>
+              <p class="profile-card__desc">El asistente o analista carga el trabajo. El DT toma decisiones sobre datos reales.</p>
+            </div>
+            <div class="profile-card">
+              <div class="profile-card__icon">⚡</div>
+              <div class="profile-card__title">Entrenadores en solitario</div>
+              <p class="profile-card__desc">Usas la plataforma como tu propio sistema de orden: análisis, planificación y seguimiento del plantel.</p>
+            </div>
+            <div class="profile-card">
+              <div class="profile-card__icon">🌱</div>
+              <div class="profile-card__title">Fútbol formativo</div>
+              <p class="profile-card__desc">Scouting de proyectos, seguimiento individual y planificación de microciclos adaptada a categorías.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="forwho__visual">
+
+          <!-- Card: Lo que reemplaza -->
+          <div class="quote-card" style="padding:20px 22px">
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#39e870;margin-bottom:12px">Lo que reemplaza</div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;align-items:center;gap:10px;font-family:'Barlow',sans-serif;font-size:12px;color:#5a6080">
+                <span style="text-decoration:line-through">Carpetas de Google Drive sin orden</span>
+                <span style="margin-left:auto;font-size:10px;color:#39e870;background:rgba(57,232,112,.08);padding:2px 7px;border-radius:3px;white-space:nowrap">✓ Historial unificado</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;font-family:'Barlow',sans-serif;font-size:12px;color:#5a6080">
+                <span style="text-decoration:line-through">Informes armados en PowerPoint/Canva</span>
+                <span style="margin-left:auto;font-size:10px;color:#39e870;background:rgba(57,232,112,.08);padding:2px 7px;border-radius:3px;white-space:nowrap">✓ PDF en 1 clic</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;font-family:'Barlow',sans-serif;font-size:12px;color:#5a6080">
+                <span style="text-decoration:line-through">Planillas Excel para el plantel</span>
+                <span style="margin-left:auto;font-size:10px;color:#39e870;background:rgba(57,232,112,.08);padding:2px 7px;border-radius:3px;white-space:nowrap">✓ Módulo de evaluación</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;font-family:'Barlow',sans-serif;font-size:12px;color:#5a6080">
+                <span style="text-decoration:line-through">Libreta del DT que nadie más lee</span>
+                <span style="margin-left:auto;font-size:10px;color:#39e870;background:rgba(57,232,112,.08);padding:2px 7px;border-radius:3px;white-space:nowrap">✓ Recomendaciones CT</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;font-family:'Barlow',sans-serif;font-size:12px;color:#5a6080">
+                <span style="text-decoration:line-through">Contactos de jugadores en WhatsApp</span>
+                <span style="margin-left:auto;font-size:10px;color:#39e870;background:rgba(57,232,112,.08);padding:2px 7px;border-radius:3px;white-space:nowrap">✓ Base de scouting</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card: Memoria del club -->
+          <div class="quote-card quote-card--orange" style="padding:20px 22px">
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#ff9c2a;margin-bottom:10px">La memoria del club</div>
+            <p style="font-family:'Barlow',sans-serif;font-size:13px;color:#ccd0e8;line-height:1.6;margin:0 0 14px">
+              Cuando cambia el DT, la historia del plantel no se va con él. Scouting, evaluaciones e informes quedan en el sistema para el que viene.
+            </p>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="width:8px;height:8px;border-radius:50%;background:#ff9c2a;flex-shrink:0"></div>
+              <span style="font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:1px;color:#ff9c2a">Continuidad institucional real</span>
+            </div>
+          </div>
+
+          <!-- Card: Números -->
+          <div class="quote-card quote-card--cyan" style="padding:20px 22px">
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#3dc8f5;margin-bottom:14px">Todo en un ecosistema</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <div style="text-align:center;background:rgba(61,200,245,.06);border:1px solid rgba(61,200,245,.15);border-radius:8px;padding:12px 8px">
+                <div style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:#3dc8f5;line-height:1">6</div>
+                <div style="font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:1px;color:#5a6080;margin-top:2px">módulos integrados</div>
+              </div>
+              <div style="text-align:center;background:rgba(61,200,245,.06);border:1px solid rgba(61,200,245,.15);border-radius:8px;padding:12px 8px">
+                <div style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:#3dc8f5;line-height:1">1</div>
+                <div style="font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:1px;color:#5a6080;margin-top:2px">plataforma por club</div>
+              </div>
+              <div style="text-align:center;background:rgba(61,200,245,.06);border:1px solid rgba(61,200,245,.15);border-radius:8px;padding:12px 8px">
+                <div style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:#3dc8f5;line-height:1">∞</div>
+                <div style="font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:1px;color:#5a6080;margin-top:2px">informes guardados</div>
+              </div>
+              <div style="text-align:center;background:rgba(61,200,245,.06);border:1px solid rgba(61,200,245,.15);border-radius:8px;padding:12px 8px">
+                <div style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:#3dc8f5;line-height:1">0</div>
+                <div style="font-family:'Barlow Condensed',sans-serif;font-size:9px;letter-spacing:1px;color:#5a6080;margin-top:2px">apps externas necesarias</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ── FAQ ──────────────────────────────────────────────────────────────── -->
+  <section id="faq" style="padding:80px 0;background:var(--bg2)">
+    <div style="max-width:720px;margin:0 auto;padding:0 24px">
+      <div style="text-align:center;margin-bottom:48px">
+        <div style="font-family:var(--title);font-size:11px;letter-spacing:3px;color:#ffd93e;text-transform:uppercase;margin-bottom:12px">FAQ</div>
+        <h2 style="font-family:var(--title);font-size:42px;color:var(--wht)">Preguntas frecuentes</h2>
+      </div>
+      <div id="faq-list" style="display:flex;flex-direction:column;gap:12px">
+        <div class="faq-item" style="background:var(--bg3);border:1px solid var(--brd);border-radius:10px;overflow:hidden">
+          <button onclick="ltFaqToggle(this)" style="width:100%;padding:18px 20px;display:flex;justify-content:space-between;align-items:center;background:none;border:none;cursor:pointer;color:var(--wht);font-family:var(--cond);font-size:15px;font-weight:600;text-align:left;letter-spacing:.3px">
+            ¿Necesito instalar algo? <span style="color:var(--green);font-size:18px;transition:transform .2s">+</span>
+          </button>
+          <div class="faq-body" style="display:none;padding:0 20px 18px;color:var(--txt);font-size:13px;line-height:1.7">
+            No. Líbero Táctico funciona 100% en el navegador. No requiere instalación ni descarga. Accedé desde cualquier dispositivo con internet.
+          </div>
+        </div>
+        <div class="faq-item" style="background:var(--bg3);border:1px solid var(--brd);border-radius:10px;overflow:hidden">
+          <button onclick="ltFaqToggle(this)" style="width:100%;padding:18px 20px;display:flex;justify-content:space-between;align-items:center;background:none;border:none;cursor:pointer;color:var(--wht);font-family:var(--cond);font-size:15px;font-weight:600;text-align:left;letter-spacing:.3px">
+            ¿Mis datos están seguros? <span style="color:var(--green);font-size:18px;transition:transform .2s">+</span>
+          </button>
+          <div class="faq-body" style="display:none;padding:0 20px 18px;color:var(--txt);font-size:13px;line-height:1.7">
+            Sí. Todos los datos se almacenan de forma segura en tu cuenta personal con encriptación. Nunca compartimos información con terceros.
+          </div>
+        </div>
+        <div class="faq-item" style="background:var(--bg3);border:1px solid var(--brd);border-radius:10px;overflow:hidden">
+          <button onclick="ltFaqToggle(this)" style="width:100%;padding:18px 20px;display:flex;justify-content:space-between;align-items:center;background:none;border:none;cursor:pointer;color:var(--wht);font-family:var(--cond);font-size:15px;font-weight:600;text-align:left;letter-spacing:.3px">
+            ¿Puedo exportar mis informes? <span style="color:var(--green);font-size:18px;transition:transform .2s">+</span>
+          </button>
+          <div class="faq-body" style="display:none;padding:0 20px 18px;color:var(--txt);font-size:13px;line-height:1.7">
+            Sí. Puedes generar informes completos en PDF con un solo click. Incluyen datos del jugador, sistemas tácticos y la pizarra digital.
+          </div>
+        </div>
+        <div class="faq-item" style="background:var(--bg3);border:1px solid var(--brd);border-radius:10px;overflow:hidden">
+          <button onclick="ltFaqToggle(this)" style="width:100%;padding:18px 20px;display:flex;justify-content:space-between;align-items:center;background:none;border:none;cursor:pointer;color:var(--wht);font-family:var(--cond);font-size:15px;font-weight:600;text-align:left;letter-spacing:.3px">
+            ¿Puedo usar la plataforma con mi cuerpo técnico? <span style="color:var(--green);font-size:18px;transition:transform .2s">+</span>
+          </button>
+          <div class="faq-body" style="display:none;padding:0 20px 18px;color:var(--txt);font-size:13px;line-height:1.7">
+            Con el plan Club/Academia puedes tener hasta 10 entrenadores con acceso diferenciado. Cada uno gestiona sus propios equipos bajo un panel administrativo unificado.
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ======================================================
+       CICLO DE ANÁLISIS
+  ====================================================== -->
+  <section style="padding:80px 0;background:linear-gradient(180deg,var(--bg2) 0%,var(--bg) 100%)">
+    <div style="max-width:900px;margin:0 auto;padding:0 24px;text-align:center">
+      <span style="font-family:Barlow Condensed,sans-serif;font-size:11px;letter-spacing:3px;color:var(--pa);text-transform:uppercase;display:block;margin-bottom:12px">Metodología</span>
+      <h2 style="font-family:Bebas Neue,sans-serif;font-size:clamp(32px,5vw,52px);color:var(--txt);line-height:1;margin-bottom:14px">El <span style="color:var(--pa)">Ciclo de Análisis</span></h2>
+      <p style="font-size:15px;color:var(--txt2);max-width:560px;margin:0 auto 52px;line-height:1.6">Cada partido alimenta el siguiente. La plataforma convierte los datos en decisiones tácticas concretas — partido a partido, semana a semana.</p>
+
+      <!-- Cycle diagram -->
+      <div style="display:flex;justify-content:center;align-items:flex-start;gap:0;flex-wrap:wrap;max-width:780px;margin:0 auto">
+        <div class="lt-cycle-step" style="--c:#39e870">
+          <div class="lt-cycle-icon">📹</div>
+          <div class="lt-cycle-label">OBSERVAR</div>
+          <div class="lt-cycle-desc">Partido en vivo<br>Video · Botonera</div>
+        </div>
+        <div class="lt-cycle-arrow">→</div>
+        <div class="lt-cycle-step" style="--c:#3dc8f5">
+          <div class="lt-cycle-icon">📊</div>
+          <div class="lt-cycle-label">REGISTRAR</div>
+          <div class="lt-cycle-desc">Datos · Métricas<br>Estadísticas</div>
+        </div>
+        <div class="lt-cycle-arrow">→</div>
+        <div class="lt-cycle-step" style="--c:#ff9c2a">
+          <div class="lt-cycle-icon">🧠</div>
+          <div class="lt-cycle-label">ANALIZAR</div>
+          <div class="lt-cycle-desc">Tendencias · Patrones<br>xG · Comparación</div>
+        </div>
+        <div class="lt-cycle-arrow">→</div>
+        <div class="lt-cycle-step" style="--c:#b87cff">
+          <div class="lt-cycle-icon">📋</div>
+          <div class="lt-cycle-label">COMUNICAR</div>
+          <div class="lt-cycle-desc">PDF · Informe CT<br>Pizarra táctica</div>
+        </div>
+        <div class="lt-cycle-arrow">→</div>
+        <div class="lt-cycle-step" style="--c:#ffd93e">
+          <div class="lt-cycle-icon">⚽</div>
+          <div class="lt-cycle-label">EJECUTAR</div>
+          <div class="lt-cycle-desc">Entrenamiento<br>Microciclo</div>
+        </div>
+      </div>
+      <div style="text-align:center;margin-top:28px;font-family:Barlow Condensed,sans-serif;font-size:10px;color:#3a4060;letter-spacing:3px">↺ &nbsp; CADA PARTIDO REINICIA EL CICLO &nbsp; ↺</div>
+    </div>
+  </section>
+
+  <style>
+    .lt-cycle-step {
+      display:flex;flex-direction:column;align-items:center;gap:8px;width:100px;padding:0 4px;
+    }
+    .lt-cycle-icon {
+      width:58px;height:58px;border-radius:50%;background:rgba(255,255,255,.03);
+      border:1.5px solid var(--c,#39e870);display:flex;align-items:center;justify-content:center;
+      font-size:24px;transition:transform .3s,background .3s,box-shadow .3s;
+    }
+    .lt-cycle-step:hover .lt-cycle-icon {
+      transform:scale(1.1);background:rgba(255,255,255,.07);
+      box-shadow:0 0 18px rgba(255,255,255,.06);
+    }
+    .lt-cycle-label {
+      font-family:Barlow Condensed,sans-serif;font-size:11px;font-weight:700;
+      color:var(--c,#39e870);letter-spacing:2px;text-align:center;
+    }
+    .lt-cycle-desc {
+      font-size:10px;color:#4a5570;text-align:center;line-height:1.4;
+    }
+    .lt-cycle-arrow {
+      display:flex;align-items:center;padding:0 4px;margin-top:-32px;
+      font-size:18px;color:#2a3050;flex-shrink:0;
+    }
+    @media(max-width:600px){
+      .lt-cycle-arrow{display:none;}
+      .lt-cycle-step{width:80px;}
+    }
+  </style>
+
+
+  <!-- ======================================================
+       CTA FINAL
+  ====================================================== -->
+  <section class="cta">
+    <div class="cta__bg">
+      <div class="cta__glow"></div>
+    </div>
+
+    <div class="container">
+      <div class="cta__inner">
+        <span class="label">Siguiente paso</span>
+        <h2 class="cta__title">Lleva la gestión de tu plantel a un nivel profesional</h2>
+        <p class="cta__subtitle">
+          Agenda una reunión y te mostramos cómo Líbero Táctico
+          se adapta al flujo de trabajo de tu club.
+        </p>
+
+        <div class="cta__actions">
+          <button class="btn btn--primary btn--lg" onclick="openModal()">
+            Agendar una reunión
+          </button>
+          <a href="login.html" class="btn btn--ghost btn--lg">
+            Ya tengo acceso
+          </a>
+        </div>
+
+        <p class="cta__note">Sin compromiso. Te respondemos en menos de 24 horas.</p>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ======================================================
+       FOOTER
+  ====================================================== -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer__inner">
+
+        <div class="footer__brand">
+          <img src="logo.png" alt="Líbero Táctico" style="height:32px;width:32px;object-fit:contain;flex-shrink:0"
+             onerror="this.outerHTML='<svg width=\'32\' height=\'32\' viewBox=\'0 0 36 36\' fill=\'none\' style=\'flex-shrink:0\'><rect width=\'36\' height=\'36\' rx=\'7\' fill=\'#0e1018\'/><rect x=\'2\' y=\'2\' width=\'32\' height=\'32\' rx=\'5\' fill=\'none\' stroke=\'#39e870\' stroke-width=\'1.5\'/><text x=\'18\' y=\'23\' font-family=\'Arial\' font-size=\'14\' font-weight=\'bold\' fill=\'#39e870\' text-anchor=\'middle\'>LT</text></svg>'">
+          <div>
+            <div class="footer__name">LÍBERO TÁCTICO</div>
+            <div class="footer__tagline">Ecosistema futbolístico profesional</div>
+          </div>
+        </div>
+
+        <nav class="footer__links">
+          <a href="#que-es" class="footer__link">El sistema</a>
+          <a href="#modulos" class="footer__link">Módulos</a>
+          <a href="#valor" class="footer__link">Valor</a>
+          <a href="#para-quien" class="footer__link">Para quién</a>
+          <a href="login.html" class="footer__link">Acceso</a>
+          <div style="display:flex;gap:8px;margin-top:12px">
+            <a href="privacy.html" style="color:var(--mut);text-decoration:none;font-size:11px">Privacidad</a>
+            <span style="color:var(--mut)">·</span>
+            <a href="terms.html" style="color:var(--mut);text-decoration:none;font-size:11px">Términos</a>
+          </div>
+        </nav>
+
+        <div class="footer__meta">
+          <p class="footer__copy">© 2025–2026 Líbero Táctico. Todos los derechos reservados.</p>
+          <a href="mailto:contacto@liberotactico.com" class="footer__email">contacto@liberotactico.com</a>
+        </div>
+
+      </div>
+    </div>
+  </footer>
+
+
+  <!-- ======================================================
+       DEMO MODAL
+  ====================================================== -->
+  <div class="modal-overlay" id="demoModal" onclick="handleOverlayClick(event)">
+    <div class="modal" style="position:relative">
+      <span class="modal__close" onclick="closeModal()">✕</span>
+
+      <div class="modal__header">
+        <div class="modal__title">Contáctanos</div>
+        <p class="modal__subtitle">Completa tus datos y coordinamos una reunión.</p>
+      </div>
+
+      <form class="modal__form" id="contact-form" onsubmit="handleDemoSubmit(event)">
+        <div class="form-group">
+          <label class="form-label">Nombre y apellido</label>
+          <input class="form-input" id="contact-nombre" type="text" placeholder="Tu nombre" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Club u organización</label>
+          <input class="form-input" id="contact-club" type="text" placeholder="Nombre del club" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Correo electrónico</label>
+          <input class="form-input" id="contact-email" type="email" placeholder="tu@email.com" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Rol en el club</label>
+          <select class="form-input" id="contact-rol">
+            <option value="" disabled selected>Seleccionar rol</option>
+            <option>Director Técnico / Entrenador</option>
+            <option>Analista de rendimiento</option>
+            <option>Director deportivo</option>
+            <option>Preparador físico</option>
+            <option>Coordinador de divisiones inferiores</option>
+            <option>Otro</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn--primary form-submit">
+          Enviar solicitud
+        </button>
+      </form>
+
+      <p class="modal__note">Tu información es confidencial y no se comparte con terceros.</p>
+    </div>
+  </div>
+
+
+  <!-- ======================================================
+       SCRIPTS
+  ====================================================== -->
+  <script>
+    /* ---- Navbar scroll effect ---- */
+    const navbar = document.getElementById('navbar');
+    window.addEventListener('scroll', () => {
+      navbar.classList.toggle('scrolled', window.scrollY > 20);
+    });
+
+    /* ---- Hamburger menu ---- */
+    function toggleMenu() {
+      const drawer = document.getElementById('navDrawer');
+      const burger = document.getElementById('navBurger');
+      const open   = drawer.classList.toggle('open');
+      burger.classList.toggle('open', open);
+      document.body.style.overflow = open ? 'hidden' : '';
+    }
+
+    function closeMenu() {
+      const drawer = document.getElementById('navDrawer');
+      const burger = document.getElementById('navBurger');
+      drawer.classList.remove('open');
+      burger.classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
+    /* Close drawer on outside click */
+    document.addEventListener('click', e => {
+      const drawer = document.getElementById('navDrawer');
+      const burger = document.getElementById('navBurger');
+      if (drawer.classList.contains('open') && !drawer.contains(e.target) && !burger.contains(e.target)) {
+        closeMenu();
+      }
+    });
+
+    /* ---- Smooth anchor scrolling ---- */
+    document.querySelectorAll('a[href^="#"]').forEach(link => {
+      link.addEventListener('click', e => {
+        const target = document.querySelector(link.getAttribute('href'));
+        if (target) {
+          e.preventDefault();
+          const offset = 80;
+          const top = target.getBoundingClientRect().top + window.scrollY - offset;
+          window.scrollTo({ top, behavior: 'smooth' });
+        }
+      });
+    });
+
+    /* ---- Modal ---- */
+    function openModal() {
+      document.getElementById('demoModal').classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal() {
+      document.getElementById('demoModal').classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
+    function handleOverlayClick(e) {
+      if (e.target === document.getElementById('demoModal')) closeModal();
+    }
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') closeModal();
+    });
+
+    /* ---- Formulario de contacto → Supabase Edge Function → Resend ---- */
+    var LT_EDGE_FN = 'https://jurtjxpobuhenfcyafcc.supabase.co/functions/v1/contact-email';
+
+    async function handleDemoSubmit(e) {
+      e.preventDefault();
+      const btn = e.target.querySelector('[type="submit"]');
+      const nombre = document.getElementById('contact-nombre').value.trim();
+      const club   = document.getElementById('contact-club').value.trim();
+      const email  = document.getElementById('contact-email').value.trim();
+      const rol    = document.getElementById('contact-rol').value || 'No especificado';
+
+      btn.textContent = 'Enviando...';
+      btn.disabled = true;
+
+      try {
+        const res = await fetch(LT_EDGE_FN, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nombre, club, email, rol }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Error al enviar');
+
+        btn.textContent = '✓ Solicitud enviada';
+        btn.style.background = 'rgba(57,232,112,0.15)';
+        btn.style.color = '#39e870';
+        btn.style.border = '1px solid rgba(57,232,112,0.3)';
+        e.target.reset();
+        setTimeout(closeModal, 2200);
+
+      } catch(err) {
+        console.error('[LT] contact form error:', err);
+        btn.textContent = 'Error — intenta de nuevo';
+        btn.style.background = 'rgba(255,62,94,0.12)';
+        btn.style.color = '#ff3e5e';
+        btn.style.border = '1px solid rgba(255,62,94,0.3)';
+        btn.disabled = false;
+        setTimeout(() => {
+          btn.textContent = 'Enviar solicitud';
+          btn.style.cssText = '';
+          btn.disabled = false;
+        }, 3000);
+      }
+    }
+
+    /* ---- Entrance animations with IntersectionObserver ---- */
+    const animatables = document.querySelectorAll(
+      '.module-card, .value-item, .profile-card, .pillar, .quote-card, .statsbar__item'
+    );
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.style.opacity = '1';
+          entry.target.style.transform = entry.target.style.transform
+            ? entry.target.style.transform.replace('translateY(20px)', 'translateY(0)')
+            : 'translateY(0)';
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1 });
+
+    animatables.forEach((el, i) => {
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(20px)';
+      el.style.transition = `opacity 0.4s ease ${i * 0.05}s, transform 0.4s ease ${i * 0.05}s`;
+      observer.observe(el);
+    });
+
+    /* ---- FAQ Toggle ---- */
+    function ltFaqToggle(btn) {
+      var body = btn.nextElementSibling;
+      var icon = btn.querySelector('span');
+      var isOpen = body.style.display !== 'none';
+      // Close all
+      document.querySelectorAll('.faq-body').forEach(function(b){ b.style.display = 'none'; });
+      document.querySelectorAll('.faq-item button span').forEach(function(s){ s.textContent = '+'; s.style.transform = ''; });
+      // Open this one if it was closed
+      if (!isOpen) {
+        body.style.display = 'block';
+        icon.textContent = '×';
+        icon.style.transform = 'rotate(0deg)';
+      }
+    }
+  </script>
+
+  <!-- ── Sistema de color dinámico + animaciones ──────────────────────────── -->
+  <script>
+  (function(){
+    var root = document.documentElement;
+    var current = '#ff9c2a';
+    var hovering = false;
+    var scrollColor = '#ff9c2a';
+
+    /* ── 1. Acento dinámico ──────────────────────────────────────────── */
+    var SECTIONS = [
+      { id: 'que-es',     color: '#ff9c2a' },
+      { id: 'modulos',    color: '#ff3e5e' },
+      { id: 'valor',      color: '#3dc8f5' },
+      { id: 'para-quien', color: '#a78bfa' },
+      { id: 'faq',        color: '#ffd93e' },
+    ];
+
+    function setAccent(color, instant) {
+      if (color === current) return;
+      current = color;
+      root.style.setProperty('--pa', color);
+    }
+    setAccent('#ff9c2a');
+
+    function onScroll() {
+      if (hovering) return;
+      var vh = window.innerHeight;
+      var active = null;
+      for (var i = 0; i < SECTIONS.length; i++) {
+        var el = document.getElementById(SECTIONS[i].id);
+        if (!el) continue;
+        if (el.getBoundingClientRect().top <= vh * 0.45) active = SECTIONS[i];
+      }
+      scrollColor = active ? active.color : '#ff9c2a';
+      setAccent(scrollColor);
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+
+    /* ── 2. Tarjetas — hover cambia el acento de la página ──────────── */
+    var CARD_COLORS = {
+      'module-card--accent': '#39e870',
+      'module-card--orange': '#ff9c2a',
+      'module-card--cyan':   '#3dc8f5',
+      'module-card--red':    '#ff3e5e',
+      'module-card--purple': '#a78bfa',
+      'module-card--yellow': '#ffd93e',
+    };
+    document.querySelectorAll('.module-card').forEach(function(card) {
+      var cardColor = null;
+      Object.keys(CARD_COLORS).forEach(function(cls) {
+        if (card.classList.contains(cls)) cardColor = CARD_COLORS[cls];
+      });
+      if (!cardColor) return;
+      card.addEventListener('mouseenter', function() {
+        hovering = true;
+        setAccent(cardColor);
+      });
+      card.addEventListener('mouseleave', function() {
+        hovering = false;
+        setAccent(scrollColor);
+      });
+    });
+
+    /* ── 3. Typewriter en hero subheadline ──────────────────────────── */
+    (function() {
+      var subEl = document.getElementById('lt-hero-sub');
+      if (!subEl) return;
+      var fullText = subEl.textContent.replace(/\s+/g, ' ').trim();
+      var words = fullText.split(' ').filter(Boolean);
+      subEl.innerHTML = words.map(function(w) {
+        return '<span class="lt-word" style="opacity:0;display:inline-block;transition:opacity .45s ease,transform .45s ease;transform:translateY(8px);margin-right:.3em">' + w + '</span>';
+      }).join('');
+      subEl.style.opacity = '1';
+      var spans = subEl.querySelectorAll('.lt-word');
+      spans.forEach(function(s, i) {
+        setTimeout(function() {
+          s.style.opacity = '1';
+          s.style.transform = 'translateY(0)';
+        }, 380 + i * 50);
+      });
+    })();
+
+    /* ── 4. Contador animado en stats bar ───────────────────────────── */
+    function animateCount(el, from, to, dur, suffix) {
+      if (!el) return;
+      var start = null;
+      (function step(ts) {
+        if (!start) start = ts;
+        var p = Math.min((ts - start) / dur, 1);
+        var ease = 1 - Math.pow(1 - p, 3);
+        el.innerHTML = Math.round(from + (to - from) * ease) + '<span>' + suffix + '</span>';
+        if (p < 1) requestAnimationFrame(step);
+      })(performance.now());
+    }
+
+    var statsDone = false;
+    var statsBar  = document.querySelector('.statsbar');
+    if (statsBar && 'IntersectionObserver' in window) {
+      new IntersectionObserver(function(entries) {
+        if (entries[0].isIntersecting && !statsDone) {
+          statsDone = true;
+          var items = statsBar.querySelectorAll('.statsbar__item');
+          // item 0: "6+" mods
+          animateCount(items[0] && items[0].querySelector('.statsbar__value'), 0, 6, 1000, '<span>+</span>');
+          // item 2: "100%"
+          animateCount(items[2] && items[2].querySelector('.statsbar__value'), 0, 100, 1400, '<span>%</span>');
+        }
+      }, { threshold: 0.6 }).observe(statsBar);
+    }
+
+    /* ── 5. FAQ header — color amarillo ─────────────────────────────── */
+    var faqLabel = document.querySelector('#faq [style*="--green"]') ||
+      document.querySelector('#faq > div > div > div:first-child');
+    if (faqLabel && faqLabel.style) {
+      faqLabel.style.color = '#ffd93e';
+    }
+
+  })();
+  </script>
+
+</body>
+</html>

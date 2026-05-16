@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="icon" type="image/png" sizes="192x192" href="favicon-192.png">
+  <link rel="apple-touch-icon" href="favicon-192.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#08090d">
+  <title>Líbero Táctico — Cuenta confirmada</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;500;600;700&family=Barlow+Condensed:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <style>
+    :root {
+      --bg:#050609; --bg2:#0e1018; --bg3:#161822; --bg4:#1c1e2a;
+      --brd:#222540; --brd2:#2a2f52; --mut:#5a6080; --txt:#ccd0e8; --wht:#eef0fa;
+      --green:#39e870; --orange:#ff9c2a; --red:#ff3e5e;
+      --title:'Bebas Neue',sans-serif; --body:'Barlow',sans-serif; --cond:'Barlow Condensed',sans-serif;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%}
+    body{
+      background:var(--bg); color:var(--txt); font-family:var(--body); font-size:14px;
+      -webkit-font-smoothing:antialiased; display:flex; flex-direction:column;
+      align-items:center; justify-content:center; min-height:100vh;
+      overflow-x:hidden; position:relative;
+    }
+    .bg-grid{
+      position:fixed; inset:0; pointer-events:none; z-index:0;
+      background-image:
+        linear-gradient(rgba(57,232,112,.025) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(57,232,112,.025) 1px,transparent 1px);
+      background-size:44px 44px;
+    }
+    .bg-glow{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+    .bg-glow::before{
+      content:'';position:absolute;top:10%;left:-10%;width:560px;height:560px;
+      background:radial-gradient(circle,rgba(57,232,112,.07) 0%,transparent 65%);
+    }
+    .bg-glow::after{
+      content:'';position:absolute;bottom:5%;right:-10%;width:500px;height:500px;
+      background:radial-gradient(circle,rgba(255,156,42,.05) 0%,transparent 65%);
+    }
+    .module-strip{position:fixed;top:0;left:0;right:0;height:3px;display:flex;z-index:10}
+    .module-strip span{flex:1;opacity:.9}
+    .s1{background:var(--green);box-shadow:0 0 14px var(--green)}
+    .s2{background:var(--orange);box-shadow:0 0 14px var(--orange)}
+    .s3{background:var(--red);box-shadow:0 0 14px var(--red)}
+
+    .wrap{
+      position:relative;z-index:1;width:100%;max-width:420px;padding:0 20px;
+      animation:fadeUp .45s cubic-bezier(.16,1,.3,1) both;
+    }
+    @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+
+    .brand{text-align:center;margin-bottom:28px}
+    .brand-icon{
+      display:inline-flex;align-items:center;justify-content:center;
+      width:60px;height:60px;border-radius:16px;background:var(--bg3);
+      border:1px solid rgba(57,232,112,.25);margin-bottom:14px;
+      font-family:var(--title);font-size:28px;color:var(--green);letter-spacing:1px;
+    }
+    .brand h1{font-family:var(--title);font-size:32px;letter-spacing:2px;color:var(--wht);line-height:1}
+    .brand p{font-size:12px;color:var(--mut);margin-top:6px;letter-spacing:.5px;text-transform:uppercase}
+
+    .card{
+      background:var(--bg2);border:1px solid var(--brd);border-radius:16px;
+      padding:32px 28px;text-align:center;
+    }
+    .card::before{
+      content:'';display:block;position:absolute;top:0;left:0;right:0;height:2px;
+      background:linear-gradient(90deg,var(--green) 0%,var(--orange) 50%,var(--red) 100%);
+      opacity:.75;border-radius:16px 16px 0 0;
+    }
+    .card{position:relative;overflow:hidden}
+
+    /* States */
+    .state{display:none}
+    .state.active{display:block}
+
+    .state-icon{font-size:56px;margin-bottom:16px}
+    .state-title{
+      font-family:var(--cond);font-size:24px;font-weight:600;color:var(--wht);
+      margin-bottom:8px;letter-spacing:.5px;
+    }
+    .state-sub{font-size:13px;color:var(--mut);line-height:1.65;margin-bottom:24px}
+    .state-sub strong{color:var(--txt)}
+
+    .btn-login{
+      display:block;width:100%;padding:13px 20px;border:none;border-radius:8px;
+      font-family:var(--cond);font-size:13px;font-weight:700;letter-spacing:2.5px;
+      text-transform:uppercase;cursor:pointer;transition:filter .2s,transform .1s;
+      background:var(--green);color:var(--bg);text-decoration:none;text-align:center;
+    }
+    .btn-login:hover{filter:brightness(1.08)}
+    .btn-login:active{transform:scale(.98)}
+
+    .btn-ghost{
+      display:block;width:100%;padding:11px 20px;border:1px solid var(--brd);border-radius:8px;
+      font-family:var(--cond);font-size:12px;font-weight:600;letter-spacing:1.5px;
+      text-transform:uppercase;cursor:pointer;transition:all .15s;
+      background:transparent;color:var(--mut);text-decoration:none;text-align:center;
+      margin-top:10px;
+    }
+    .btn-ghost:hover{border-color:var(--green);color:var(--green)}
+
+    /* Countdown */
+    .countdown{
+      font-family:var(--cond);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;
+      color:var(--mut);margin-top:16px;
+    }
+    .countdown span{color:var(--green);font-weight:700}
+
+    /* Spinner */
+    .spinner{
+      display:inline-block;width:32px;height:32px;border-radius:50%;
+      border:3px solid rgba(57,232,112,.15);border-top-color:var(--green);
+      animation:spin .7s linear infinite;margin-bottom:16px;
+    }
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    .footer-link{text-align:center;margin-top:20px;font-size:12px;color:var(--mut)}
+    .footer-link a{color:var(--green);text-decoration:none}
+    .footer-link a:hover{text-decoration:underline}
+  </style>
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <div class="bg-glow"></div>
+  <div class="module-strip"><span class="s1"></span><span class="s2"></span><span class="s3"></span></div>
+
+  <div class="wrap">
+    <a href="index.html" style="text-decoration:none;color:inherit;display:block">
+    <div class="brand">
+      <img src="logo.png" alt="Líbero Táctico" style="width:90px;height:90px;object-fit:contain;display:block;margin:0 auto 8px;filter:drop-shadow(0 0 18px rgba(255,156,42,.25))">
+      <h1>LÍBERO TÁCTICO</h1>
+      <p>Plataforma de análisis táctico</p>
+    </div>
+    </a>
+
+    <div class="card">
+
+      <!-- Estado: verificando -->
+      <div class="state active" id="st-loading">
+        <div class="spinner"></div>
+        <div class="state-title">Verificando...</div>
+        <div class="state-sub">Estamos confirmando tu cuenta, un momento.</div>
+      </div>
+
+      <!-- Estado: confirmación exitosa -->
+      <div class="state" id="st-success">
+        <div class="state-icon">✅</div>
+        <div class="state-title">¡Cuenta confirmada!</div>
+        <div class="state-sub" id="st-success-sub">Tu cuenta fue verificada correctamente.<br><strong>Ya puedes ingresar con tu email y contraseña.</strong></div>
+        <a href="login.html" class="btn-login" id="btn-to-login">Ir al inicio de sesión</a>
+        <div class="countdown" id="countdown-txt"></div>
+      </div>
+
+      <!-- Estado: token inválido / ya usado -->
+      <div class="state" id="st-invalid">
+        <div class="state-icon">⚠️</div>
+        <div class="state-title">Enlace inválido</div>
+        <div class="state-sub">Este enlace ya fue usado o expiró.<br>Si ya confirmaste tu cuenta, puedes ingresar directamente.</div>
+        <a href="login.html" class="btn-login">Ir al inicio de sesión</a>
+        <div style="margin-top:10px;font-size:12px;color:var(--mut)">¿No te llegó el email? <a href="login.html" style="color:var(--orange)">Solicita uno nuevo</a></div>
+      </div>
+
+    </div><!-- /card -->
+
+    <div class="footer-link">
+      <a href="login.html">← Volver al inicio de sesión</a>
+    </div>
+  </div><!-- /wrap -->
+
+  <script src="supabaseclient.js"></script>
+  <script>
+    var _sb = window.__supabaseClient;
+
+    function showState(id) {
+      ['st-loading','st-success','st-invalid'].forEach(function(s){
+        document.getElementById(s).classList.remove('active');
+      });
+      document.getElementById(id).classList.add('active');
+    }
+
+    // ── Countdown auto-redirect ────────────────────────────────────────────────
+    function startCountdown(seconds) {
+      var el = document.getElementById('countdown-txt');
+      if (!el) return;
+      var remaining = seconds;
+      el.innerHTML = 'Redirigiendo en <span id="countdown-sec">' + remaining + '</span> seg...';
+      var interval = setInterval(function(){
+        remaining--;
+        var secEl = document.getElementById('countdown-sec');
+        if (secEl) secEl.textContent = remaining;
+        if (remaining <= 0) {
+          clearInterval(interval);
+          window.location.replace('login.html');
+        }
+      }, 1000);
+    }
+
+    // ── Detección de token / código de confirmación ────────────────────────────
+    // Soporta TODOS los formatos de Supabase:
+    //   1. token_hash : ?token_hash=XXXX&type=signup  (recomendado, sin PKCE)
+    //   2. PKCE       : ?code=XXXX
+    //   3. Implicit   : #access_token=XXXX&type=signup
+    (async function init() {
+      var hash   = window.location.hash   || '';
+      var search = window.location.search || '';
+
+      // Parsear query params
+      var qParams = {};
+      if (search && search.length > 1) {
+        search.slice(1).split('&').forEach(function(pair){
+          var kv = pair.split('=');
+          qParams[decodeURIComponent(kv[0])] = decodeURIComponent((kv[1] || '').replace(/\+/g,' '));
+        });
+      }
+
+      // Parsear hash params
+      var hParams = {};
+      if (hash && hash.length > 1) {
+        hash.slice(1).split('&').forEach(function(pair){
+          var kv = pair.split('=');
+          hParams[decodeURIComponent(kv[0])] = decodeURIComponent((kv[1] || '').replace(/\+/g,' '));
+        });
+      }
+
+      var hasTokenHash = !!qParams.token_hash;
+      var hasPKCE      = !!qParams.code;
+      var hasImplicit  = !!(hParams.access_token);
+
+      console.log('[Confirm] token_hash:', hasTokenHash, '| PKCE:', hasPKCE, '| implicit:', hasImplicit);
+
+      if (!hasTokenHash && !hasPKCE && !hasImplicit) {
+        showState('st-invalid');
+        return;
+      }
+
+      try {
+        var confirmed = false;
+        var confirmedEmail = null;
+        var confirmedType = 'signup';
+
+        // ══════════════════════════════════════════════════════════════════════
+        // FORMATO 1 (PREFERIDO): ?token_hash=XXX&type=signup
+        // ══════════════════════════════════════════════════════════════════════
+        if (hasTokenHash) {
+          confirmedType = qParams.type || 'signup';
+          console.log('[Confirm] Usando token_hash, type:', confirmedType);
+
+          var verifyRes = await _sb.auth.verifyOtp({
+            token_hash: qParams.token_hash,
+            type: confirmedType
+          });
+
+          if (!verifyRes.error && verifyRes.data && verifyRes.data.session) {
+            confirmed = true;
+            confirmedEmail = verifyRes.data.session.user ? verifyRes.data.session.user.email : null;
+            // Cerrar sesión — el usuario debe hacer login manualmente
+            await _sb.auth.signOut({ scope: 'local' });
+          } else if (!verifyRes.error && verifyRes.data && verifyRes.data.user) {
+            // Algunos tipos de confirmación no devuelven sesión pero sí user
+            confirmed = true;
+            confirmedEmail = verifyRes.data.user.email || null;
+          } else {
+            console.error('[Confirm] verifyOtp error:', verifyRes.error);
+          }
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        // FORMATO 3: Implicit — #access_token=XXX
+        // ══════════════════════════════════════════════════════════════════════
+        else if (hasImplicit) {
+          console.log('[Confirm] Formato implicit detectado');
+          confirmedType = hParams.type || 'signup';
+          var setRes = await _sb.auth.setSession({
+            access_token:  hParams.access_token,
+            refresh_token: hParams.refresh_token || '',
+          });
+          if (!setRes.error && setRes.data && setRes.data.session) {
+            confirmed = true;
+            confirmedEmail = setRes.data.session.user ? setRes.data.session.user.email : null;
+            await _sb.auth.signOut({ scope: 'local' });
+          }
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        // FORMATO 2: PKCE — ?code=XXX
+        // ══════════════════════════════════════════════════════════════════════
+        else if (hasPKCE) {
+          console.log('[Confirm] Formato PKCE detectado');
+          confirmedType = qParams.type || 'signup';
+          var sessRes = await _sb.auth.getSession();
+          if (!sessRes.error && sessRes.data && sessRes.data.session) {
+            confirmed = true;
+            confirmedEmail = sessRes.data.session.user ? sessRes.data.session.user.email : null;
+            await _sb.auth.signOut({ scope: 'local' });
+          } else {
+            // Esperar evento asíncrono
+            var sess = await new Promise(function(resolve){
+              var resolved = false;
+              var timeout = setTimeout(function(){
+                if (!resolved) { resolved = true; resolve(null); }
+              }, 5000);
+              var sub = _sb.auth.onAuthStateChange(function(event, s){
+                console.log('[Confirm] Auth event:', event);
+                if (event === 'SIGNED_IN' && s) {
+                  if (!resolved) {
+                    resolved = true;
+                    clearTimeout(timeout);
+                    if (sub && sub.data && sub.data.subscription) sub.data.subscription.unsubscribe();
+                    resolve(s);
+                  }
+                }
+              });
+            });
+            if (sess) {
+              confirmed = true;
+              confirmedEmail = sess.user ? sess.user.email : null;
+              await _sb.auth.signOut({ scope: 'local' });
+            }
+          }
+        }
+
+        // Limpiar URL
+        window.history.replaceState(null, '', window.location.pathname);
+
+        if (confirmed) {
+          showState('st-success');
+
+          // ── Si es confirmación de cuenta nueva (signup), enviar email para crear contraseña ──
+          // Esto ocurre cuando el admin creó el usuario sin "acceso inmediato" y el invite falló.
+          // El usuario recibió el email de "Confirma tu cuenta", lo confirmó, y ahora
+          // necesita crear su contraseña vía el email de recuperación.
+          if (confirmedType === 'signup' && confirmedEmail) {
+            try {
+              var subEl = document.getElementById('st-success-sub');
+              var btnLogin = document.getElementById('btn-to-login');
+              if (subEl) subEl.innerHTML = 'Tu cuenta fue verificada correctamente.<br><strong>Te enviamos un email para que crees tu contraseña de acceso.</strong>';
+              if (btnLogin) btnLogin.style.display = 'none';
+              await _sb.auth.resetPasswordForEmail(confirmedEmail);
+              // Mostrar el botón de login de nuevo tras enviar el email
+              if (btnLogin) {
+                setTimeout(function(){ btnLogin.style.display = ''; }, 1500);
+              }
+            } catch(pwdEmailErr) {
+              console.warn('[Confirm] No se pudo enviar email de contraseña:', pwdEmailErr);
+              // Si falla, mostrar el flujo normal
+              var subElF = document.getElementById('st-success-sub');
+              if (subElF) subElF.innerHTML = 'Tu cuenta fue verificada.<br><strong>Usa "¿Olvidaste tu contraseña?" en el login para crear tu contraseña.</strong>';
+            }
+          }
+
+          startCountdown(8);
+        } else {
+          showState('st-invalid');
+        }
+
+      } catch(err) {
+        console.error('[Confirm] Error al verificar confirmación:', err);
+        showState('st-invalid');
+      }
+    })();
+  </script>
+</body>
+</html>

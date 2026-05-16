@@ -1,0 +1,1774 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="icon" type="image/png" sizes="192x192" href="favicon-192.png">
+  <link rel="apple-touch-icon" href="favicon-192.png">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Líbero Táctico — Admin</title>
+<meta name="robots" content="noindex,nofollow">
+
+<!-- Auth guard -->
+<script>document.documentElement.style.visibility='hidden'</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+<script src="supabaseclient.js"></script>
+<script src="lt-logger.js"></script>
+<script src="auth.js"></script>
+<script>
+(async function(){
+  // Timeout de seguridad: si algo falla, mostrar la página igual (no quedarse en blanco)
+  var showTimer = setTimeout(function(){
+    document.documentElement.style.visibility = 'visible';
+  }, 4000);
+
+  try {
+    if (!window.LT_Auth || typeof window.LT_Auth.requireAdminAuth !== 'function') {
+      throw new Error('[Admin] LT_Auth.requireAdminAuth no está disponible');
+    }
+
+    // Unificar la guardia con auth.js para evitar decisiones distintas entre páginas.
+    var authorized = await window.LT_Auth.requireAdminAuth();
+    if (!authorized) {
+      clearTimeout(showTimer);
+      return;
+    }
+
+    window._adminUser    = window.LT_CurrentUser || null;
+    window._adminProfile = window.LT_CurrentProfile || null;
+    clearTimeout(showTimer);
+    document.documentElement.style.visibility = 'visible';
+
+  } catch(err) {
+    // Error inesperado → redirigir a login, no exponer el panel
+    console.error('[Admin] Error en auth guard:', err);
+    clearTimeout(showTimer);
+    window.location.replace('login.html?next=admin');
+  }
+})();
+</script>
+
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;500;600;700&family=Barlow+Condensed:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+/* ── Variables ────────────────────────────────────────────────────────────── */
+:root{
+  --bg:#08090d; --bg2:#0e1018; --bg3:#161822; --bg4:#1c1e2a;
+  --brd:#222540; --brd2:#2a2f52; --mut:#5a6080; --txt:#ccd0e8; --wht:#eef0fa;
+  --green:#39e870; --orange:#ff9c2a; --red:#ff3e5e; --cyan:#3dc8f5;
+  --yellow:#ffd93e; --purple:#a78bfa;
+  --title:'Bebas Neue',sans-serif; --body:'Barlow',sans-serif; --cond:'Barlow Condensed',sans-serif;
+  --sidebar:220px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--txt);font-family:var(--body);font-size:13px;display:flex;-webkit-font-smoothing:antialiased}
+
+/* ── Sidebar ──────────────────────────────────────────────────────────────── */
+.sidebar{
+  width:var(--sidebar);flex-shrink:0;background:var(--bg2);border-right:1px solid var(--brd);
+  display:flex;flex-direction:column;height:100vh;overflow-y:auto;position:relative;z-index:10;
+}
+.sb-brand{padding:20px 16px 16px;border-bottom:1px solid var(--brd);display:flex;align-items:center;gap:10px;flex-shrink:0}
+.sb-logo{width:32px;height:32px;border-radius:7px;background:var(--bg3);border:1px solid var(--brd2);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sb-logo svg{width:18px;height:18px}
+.sb-name{font-family:var(--cond);font-size:12px;font-weight:700;letter-spacing:2px;color:var(--wht);text-transform:uppercase;line-height:1.2}
+.sb-role{font-family:var(--cond);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--orange);margin-top:1px}
+
+.sb-section{padding:16px 12px 4px;font-family:var(--cond);font-size:9px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--mut)}
+.sb-nav{padding:4px 8px}
+.sb-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;cursor:pointer;color:var(--mut);font-size:12px;font-weight:500;transition:all .15s;border:none;background:none;width:100%;text-align:left}
+.sb-item:hover{background:var(--bg3);color:var(--txt)}
+.sb-item.active{background:rgba(57,232,112,.1);color:var(--green);border:1px solid rgba(57,232,112,.15)}
+.sb-item .icon{font-size:15px;width:18px;text-align:center;flex-shrink:0}
+.sb-item .badge{margin-left:auto;background:var(--red);color:#fff;font-family:var(--cond);font-size:9px;font-weight:700;padding:2px 6px;border-radius:10px;min-width:18px;text-align:center}
+.sb-item .badge.green{background:var(--green);color:#08090d}
+.sb-item .badge.orange{background:var(--orange);color:#08090d}
+
+.sb-footer{margin-top:auto;padding:12px 8px;border-top:1px solid var(--brd);flex-shrink:0}
+.sb-user{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;cursor:pointer}
+.sb-user:hover{background:var(--bg3)}
+.sb-avatar{width:28px;height:28px;border-radius:50%;background:rgba(57,232,112,.15);border:1px solid rgba(57,232,112,.3);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--green);flex-shrink:0}
+.sb-user-name{font-size:11px;font-weight:600;color:var(--txt);line-height:1.2}
+.sb-user-email{font-size:10px;color:var(--mut)}
+.sb-logout{width:100%;margin-top:4px;display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;border:none;background:none;color:var(--mut);font-size:12px;cursor:pointer;transition:all .15s}
+.sb-logout:hover{background:rgba(255,62,94,.08);color:var(--red)}
+
+/* ── Main ─────────────────────────────────────────────────────────────────── */
+.main{flex:1;display:flex;flex-direction:column;height:100vh;overflow:hidden}
+.topbar{
+  height:52px;border-bottom:1px solid var(--brd);background:var(--bg2);display:flex;
+  align-items:center;padding:0 24px;gap:16px;flex-shrink:0;
+}
+.topbar-title{font-family:var(--cond);font-size:16px;font-weight:700;color:var(--wht);letter-spacing:.5px}
+.topbar-sub{font-size:11px;color:var(--mut);margin-left:auto}
+.topbar-actions{display:flex;gap:8px;align-items:center}
+
+.content{flex:1;overflow-y:auto;padding:24px}
+.section{display:none}
+.section.active{display:block}
+
+/* ── Cards KPI ────────────────────────────────────────────────────────────── */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+.kpi{background:var(--bg2);border:1px solid var(--brd);border-radius:10px;padding:18px 16px;position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.kpi.green::before{background:var(--green)} .kpi.orange::before{background:var(--orange)}
+.kpi.cyan::before{background:var(--cyan)} .kpi.red::before{background:var(--red)}
+.kpi.yellow::before{background:var(--yellow)} .kpi.purple::before{background:var(--purple)}
+.kpi-val{font-family:var(--title);font-size:40px;line-height:1;color:var(--wht);margin-bottom:4px}
+.kpi-label{font-family:var(--cond);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--mut)}
+.kpi-delta{font-family:var(--cond);font-size:10px;color:var(--green);margin-top:6px}
+.kpi-delta.neg{color:var(--red)}
+.kpi-icon{position:absolute;right:14px;top:14px;font-size:22px;opacity:.25}
+
+/* ── Panels / Cards ───────────────────────────────────────────────────────── */
+.panel{background:var(--bg2);border:1px solid var(--brd);border-radius:10px;margin-bottom:20px;overflow:hidden}
+.panel-head{padding:14px 18px;border-bottom:1px solid var(--brd);display:flex;align-items:center;gap:10px}
+.panel-title{font-family:var(--cond);font-size:14px;font-weight:700;color:var(--wht);letter-spacing:.3px;flex:1}
+.panel-body{padding:18px}
+
+/* ── Buttons ──────────────────────────────────────────────────────────────── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:7px;border:1px solid transparent;cursor:pointer;font-family:var(--cond);font-size:11px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;transition:all .15s;white-space:nowrap}
+.btn-sm{padding:5px 10px;font-size:10px}
+.btn-green{background:var(--green);color:#08090d;border-color:var(--green)}
+.btn-green:hover{background:#4ffb82;box-shadow:0 0 16px rgba(57,232,112,.3)}
+.btn-ghost{background:transparent;color:var(--txt);border-color:var(--brd2)}
+.btn-ghost:hover{border-color:var(--mut);background:var(--bg3)}
+.btn-red{background:rgba(255,62,94,.1);color:var(--red);border-color:rgba(255,62,94,.3)}
+.btn-red:hover{background:rgba(255,62,94,.2)}
+.btn-orange{background:rgba(255,156,42,.1);color:var(--orange);border-color:rgba(255,156,42,.3)}
+.btn-orange:hover{background:rgba(255,156,42,.2)}
+.btn-cyan{background:rgba(61,200,245,.1);color:var(--cyan);border-color:rgba(61,200,245,.3)}
+.btn-cyan:hover{background:rgba(61,200,245,.2)}
+
+/* ── Tables ───────────────────────────────────────────────────────────────── */
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{font-family:var(--cond);font-size:9px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--mut);padding:8px 12px;text-align:left;border-bottom:1px solid var(--brd)}
+.tbl td{padding:10px 12px;border-bottom:1px solid rgba(34,37,64,.5);font-size:12px;color:var(--txt);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:rgba(255,255,255,.02)}
+.tbl-actions{display:flex;gap:6px;align-items:center}
+
+/* ── Badges ───────────────────────────────────────────────────────────────── */
+.tag{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:10px;font-family:var(--cond);font-size:9px;font-weight:600;letter-spacing:1px;text-transform:uppercase}
+.tag-green{background:rgba(57,232,112,.1);color:var(--green);border:1px solid rgba(57,232,112,.2)}
+.tag-red{background:rgba(255,62,94,.1);color:var(--red);border:1px solid rgba(255,62,94,.2)}
+.tag-orange{background:rgba(255,156,42,.1);color:var(--orange);border:1px solid rgba(255,156,42,.2)}
+.tag-cyan{background:rgba(61,200,245,.1);color:var(--cyan);border:1px solid rgba(61,200,245,.2)}
+.tag-purple{background:rgba(167,139,250,.1);color:var(--purple);border:1px solid rgba(167,139,250,.2)}
+.tag-mut{background:rgba(90,96,128,.1);color:var(--mut);border:1px solid rgba(90,96,128,.2)}
+.dot{width:6px;height:6px;border-radius:50%;display:inline-block}
+.dot-green{background:var(--green);box-shadow:0 0 6px var(--green)}
+.dot-red{background:var(--red)} .dot-orange{background:var(--orange)} .dot-mut{background:var(--mut)}
+
+/* ── Forms ────────────────────────────────────────────────────────────────── */
+.fg{margin-bottom:14px}
+.fg label{display:block;font-family:var(--cond);font-size:9px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--mut);margin-bottom:5px}
+.fi{width:100%;background:var(--bg3);border:1px solid var(--brd);border-radius:7px;padding:8px 12px;color:var(--txt);font-family:var(--body);font-size:13px;outline:none;transition:border-color .15s}
+.fi:focus{border-color:var(--green);background:var(--bg4)}
+.fi::placeholder{color:var(--mut)}
+select.fi option{background:var(--bg2)}
+.fg-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fg-row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+
+/* ── Toggles (módulos) ────────────────────────────────────────────────────── */
+.toggle-wrap{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg3);border:1px solid var(--brd);border-radius:8px;margin-bottom:8px}
+.toggle-info{display:flex;align-items:center;gap:10px}
+.toggle-icon{font-size:18px}
+.toggle-name{font-family:var(--cond);font-size:12px;font-weight:600;color:var(--wht)}
+.toggle-desc{font-size:11px;color:var(--mut)}
+.toggle{position:relative;width:36px;height:20px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0;position:absolute}
+.toggle-slider{position:absolute;inset:0;background:var(--brd2);border-radius:20px;cursor:pointer;transition:.2s}
+.toggle-slider::before{content:'';position:absolute;width:14px;height:14px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s}
+.toggle input:checked + .toggle-slider{background:var(--green)}
+.toggle input:checked + .toggle-slider::before{transform:translateX(16px)}
+
+/* ── Module matrix ────────────────────────────────────────────────────────── */
+.mod-matrix{overflow-x:auto}
+.mod-matrix table{border-collapse:collapse;min-width:100%}
+.mod-matrix th{font-family:var(--cond);font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--mut);padding:8px 10px;text-align:center;border-bottom:1px solid var(--brd)}
+.mod-matrix th:first-child{text-align:left}
+.mod-matrix td{padding:8px 10px;border-bottom:1px solid rgba(34,37,64,.4);text-align:center}
+.mod-matrix td:first-child{text-align:left;font-size:12px;color:var(--txt);font-weight:500}
+.mod-matrix .chk{width:18px;height:18px;accent-color:var(--green);cursor:pointer}
+.mod-matrix tr:hover td{background:rgba(255,255,255,.02)}
+
+/* ── Stats bar ────────────────────────────────────────────────────────────── */
+.stat-bar-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.stat-bar-label{font-size:11px;color:var(--txt);width:140px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stat-bar-track{flex:1;height:6px;background:var(--bg3);border-radius:4px;overflow:hidden}
+.stat-bar-fill{height:100%;border-radius:4px;transition:width .6s ease}
+.stat-bar-val{font-family:var(--cond);font-size:10px;font-weight:600;color:var(--mut);width:32px;text-align:right}
+
+/* ── Cotizador ────────────────────────────────────────────────────────────── */
+.cotizador{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.price-card{background:var(--bg3);border:1px solid var(--brd);border-radius:10px;padding:20px;text-align:center}
+.price-card.selected{border-color:rgba(57,232,112,.4);background:rgba(57,232,112,.04)}
+.price-val{font-family:var(--title);font-size:52px;line-height:1;color:var(--wht);margin:8px 0}
+.price-val span{font-size:20px;color:var(--mut)}
+.price-period{font-family:var(--cond);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--mut)}
+.price-features{list-style:none;text-align:left;margin-top:14px;display:flex;flex-direction:column;gap:6px}
+.price-features li{font-size:12px;color:var(--txt);display:flex;align-items:center;gap:6px}
+.price-features li::before{content:'✓';color:var(--green);font-weight:700;flex-shrink:0}
+.quote-total{background:rgba(57,232,112,.06);border:1px solid rgba(57,232,112,.2);border-radius:10px;padding:24px;text-align:center}
+.quote-total-val{font-family:var(--title);font-size:60px;color:var(--green);line-height:1}
+.quote-total-sub{font-family:var(--cond);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--mut);margin-top:4px}
+
+/* ── Cotizador preview ───────────────────────────────────────────────────── */
+.cot-preview-box{background:var(--bg3);border:1px solid var(--brd);border-radius:10px;padding:20px;font-size:12px;color:var(--txt);line-height:1.8}
+.cot-preview-box h3{font-family:var(--title);font-size:22px;color:var(--wht);margin-bottom:4px}
+.cot-preview-box .sep{border:none;border-top:1px solid var(--brd);margin:12px 0}
+.cot-preview-box .row{display:flex;justify-content:space-between;padding:4px 0}
+.cot-preview-box .row.total{font-family:var(--cond);font-weight:700;font-size:14px;color:var(--green);border-top:1px solid rgba(57,232,112,.2);padding-top:10px;margin-top:6px}
+
+/* ── AI Insights ─────────────────────────────────────────────────────────── */
+.insight-card{background:var(--bg3);border:1px solid var(--brd);border-radius:10px;padding:16px;margin-bottom:10px;display:flex;gap:14px;align-items:flex-start;transition:border-color .2s}
+.insight-card:hover{border-color:var(--brd2)}
+.insight-card.high{border-left:3px solid var(--green)}
+.insight-card.med{border-left:3px solid var(--orange)}
+.insight-card.low{border-left:3px solid var(--cyan)}
+.insight-icon{font-size:22px;flex-shrink:0;margin-top:2px}
+.insight-body{flex:1}
+.insight-title{font-family:var(--cond);font-size:13px;font-weight:700;color:var(--wht);margin-bottom:3px}
+.insight-desc{font-size:11px;color:var(--mut);line-height:1.6}
+.insight-tag{display:inline-block;padding:2px 8px;border-radius:8px;font-family:var(--cond);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-top:6px}
+.insight-tag.high{background:rgba(57,232,112,.1);color:var(--green)}
+.insight-tag.med{background:rgba(255,156,42,.1);color:var(--orange)}
+.insight-tag.low{background:rgba(61,200,245,.1);color:var(--cyan)}
+
+/* ── Personalization ─────────────────────────────────────────────────────── */
+.pref-section{margin-bottom:20px}
+.pref-title{font-family:var(--cond);font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--mut);margin-bottom:10px}
+.color-swatches{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.color-swatch{width:28px;height:28px;border-radius:6px;cursor:pointer;border:2px solid transparent;transition:all .15s}
+.color-swatch:hover{transform:scale(1.15)}
+.color-swatch.active{border-color:#fff;box-shadow:0 0 0 2px rgba(255,255,255,.3)}
+
+/* ══════════════════════════════════════════════════════
+   DESIGN REFRESH — Acentos de color estilo index.html
+   ══════════════════════════════════════════════════════ */
+
+/* Topbar — gradient line bottom */
+.topbar{position:relative}
+.topbar::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent 0%,#39e870 25%,#ff9c2a 50%,#a78bfa 75%,transparent 100%);opacity:.25}
+
+/* Sidebar — right accent line */
+.sidebar::after{content:'';position:absolute;top:0;right:0;width:1px;height:100%;background:linear-gradient(to bottom,transparent 5%,#39e870 35%,#39e870 65%,transparent 95%);opacity:.1}
+.sidebar{position:relative}
+
+/* Sidebar active item — glow izquierdo */
+.sb-item.active{background:rgba(57,232,112,.07);color:var(--green);border:1px solid rgba(57,232,112,.2);border-left:3px solid var(--green);box-shadow:inset 2px 0 12px rgba(57,232,112,.06)}
+.sb-item.active .icon{filter:drop-shadow(0 0 4px rgba(57,232,112,.6))}
+.sb-item:hover:not(.active){background:var(--bg3);color:var(--txt);border-left:1px solid rgba(255,255,255,.06)}
+
+/* KPI cards — glow según color */
+.kpi{transition:box-shadow .2s,transform .2s}
+.kpi:hover{transform:translateY(-1px)}
+.kpi::before{height:3px;opacity:.9}
+.kpi.green{box-shadow:0 0 0 1px rgba(57,232,112,.08),0 4px 20px rgba(0,0,0,.2)}
+.kpi.green:hover{box-shadow:0 0 24px rgba(57,232,112,.12),0 0 0 1px rgba(57,232,112,.2)}
+.kpi.orange{box-shadow:0 0 0 1px rgba(255,156,42,.08),0 4px 20px rgba(0,0,0,.2)}
+.kpi.orange:hover{box-shadow:0 0 24px rgba(255,156,42,.12),0 0 0 1px rgba(255,156,42,.2)}
+.kpi.cyan{box-shadow:0 0 0 1px rgba(61,200,245,.08),0 4px 20px rgba(0,0,0,.2)}
+.kpi.cyan:hover{box-shadow:0 0 24px rgba(61,200,245,.12),0 0 0 1px rgba(61,200,245,.2)}
+.kpi.red{box-shadow:0 0 0 1px rgba(255,62,94,.08),0 4px 20px rgba(0,0,0,.2)}
+.kpi.red:hover{box-shadow:0 0 24px rgba(255,62,94,.12),0 0 0 1px rgba(255,62,94,.2)}
+.kpi.yellow{box-shadow:0 0 0 1px rgba(255,217,62,.08),0 4px 20px rgba(0,0,0,.2)}
+.kpi.yellow:hover{box-shadow:0 0 24px rgba(255,217,62,.12),0 0 0 1px rgba(255,217,62,.2)}
+.kpi.purple{box-shadow:0 0 0 1px rgba(167,139,250,.08),0 4px 20px rgba(0,0,0,.2)}
+.kpi.purple:hover{box-shadow:0 0 24px rgba(167,139,250,.12),0 0 0 1px rgba(167,139,250,.2)}
+
+/* Panel cards — accent top line on header */
+.panel{transition:box-shadow .2s}
+.panel:hover{box-shadow:0 4px 24px rgba(0,0,0,.25)}
+.panel-head{position:relative}
+.panel-head::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--green),transparent 70%);opacity:.2;border-radius:10px 10px 0 0}
+
+/* Toggle wraps — color accent on left */
+.toggle-wrap{transition:border-color .2s,background .2s;border-left:3px solid var(--brd2)}
+.toggle-wrap:hover{border-left-color:var(--green);background:rgba(57,232,112,.03)}
+
+/* Table — better row hover */
+.tbl tr:hover td{background:rgba(255,255,255,.03)}
+.tbl th{border-bottom:1px solid var(--brd);border-top:1px solid rgba(255,255,255,.03)}
+
+/* Insight cards — lift on hover */
+.insight-card{transition:border-color .2s,box-shadow .2s,transform .2s}
+.insight-card:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(0,0,0,.2)}
+.insight-card.high:hover{border-left-color:#39e870;box-shadow:0 4px 20px rgba(57,232,112,.08)}
+.insight-card.med:hover{box-shadow:0 4px 20px rgba(255,156,42,.08)}
+.insight-card.low:hover{box-shadow:0 4px 20px rgba(61,200,245,.08)}
+
+/* Buttons — glow en colores */
+.btn-green:hover{box-shadow:0 0 18px rgba(57,232,112,.35)}
+.btn-cyan:hover{box-shadow:0 0 18px rgba(61,200,245,.2);background:rgba(61,200,245,.18)}
+.btn-orange:hover{box-shadow:0 0 18px rgba(255,156,42,.2);background:rgba(255,156,42,.18)}
+
+/* Section titles */
+.section h2,.section h3{font-family:var(--title);letter-spacing:1px}
+
+/* Stat bars — colored fill glow */
+.stat-bar-fill{box-shadow:0 0 6px currentColor}
+
+/* ── Logo club upload ─────────────────────────────────────────────────────── */
+.logo-upload-area{border:2px dashed var(--brd);border-radius:10px;padding:16px;text-align:center;cursor:pointer;transition:border-color .2s;position:relative}
+.logo-upload-area:hover{border-color:var(--green)}
+.logo-upload-area input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.logo-preview{width:48px;height:48px;border-radius:8px;object-fit:contain;border:1px solid var(--brd2);background:var(--bg3)}
+
+/* ── Modal ────────────────────────────────────────────────────────────────── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(8px);z-index:1000;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.open{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--brd2);border-radius:14px;padding:28px;width:100%;max-width:520px;box-shadow:0 40px 80px rgba(0,0,0,.6);position:relative;max-height:90vh;overflow-y:auto}
+.modal-title{font-family:var(--title);font-size:28px;color:var(--wht);margin-bottom:4px}
+.modal-sub{font-size:12px;color:var(--mut);margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--brd)}
+.modal-close{position:absolute;top:14px;right:14px;background:none;border:none;color:var(--mut);font-size:18px;cursor:pointer;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:6px}
+.modal-close:hover{background:var(--bg3);color:var(--txt)}
+.modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid var(--brd)}
+
+/* ── Toast ────────────────────────────────────────────────────────────────── */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--bg2);border:1px solid var(--brd2);border-radius:10px;padding:12px 18px;display:flex;align-items:center;gap:10px;font-size:13px;color:var(--txt);box-shadow:0 8px 32px rgba(0,0,0,.5);z-index:9999;transform:translateY(80px);opacity:0;transition:all .3s cubic-bezier(.16,1,.3,1)}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.success{border-color:rgba(57,232,112,.3)} .toast.error{border-color:rgba(255,62,94,.3)} .toast.warning{border-color:rgba(255,156,42,.4);color:var(--orange)} .toast.info{border-color:rgba(100,149,237,.4);color:#64a0ff}
+
+/* ── Activity feed ────────────────────────────────────────────────────────── */
+.activity-item{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid rgba(34,37,64,.5)}
+.activity-item:last-child{border-bottom:none}
+.activity-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.activity-body{flex:1}
+.activity-text{font-size:12px;color:var(--txt);line-height:1.5}
+.activity-time{font-family:var(--cond);font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--mut);margin-top:2px}
+
+/* ── Responsive ───────────────────────────────────────────────────────────── */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.mt-4{margin-top:4px} .mt-8{margin-top:8px} .mt-16{margin-top:16px}
+.empty{text-align:center;padding:40px 20px;color:var(--mut);font-size:13px}
+.empty .empty-icon{font-size:32px;margin-bottom:8px;opacity:.5}
+
+/* ── Search ───────────────────────────────────────────────────────────────── */
+.search-wrap{position:relative;flex:1;max-width:300px}
+.search-wrap input{width:100%;background:var(--bg3);border:1px solid var(--brd);border-radius:7px;padding:7px 12px 7px 32px;color:var(--txt);font-size:12px;outline:none}
+.search-wrap input:focus{border-color:var(--green)}
+.search-wrap::before{content:'🔍';position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:11px;pointer-events:none}
+
+/* ── Hamburger (desktop: hidden) ─────────────────────────────────────────── */
+#lt-mb-menu{
+  display:none;align-items:center;justify-content:center;
+  width:40px;height:40px;border-radius:10px;
+  border:1px solid var(--brd);background:var(--bg3);
+  color:var(--txt);cursor:pointer;font-size:18px;flex-shrink:0;
+  transition:background .15s;-webkit-tap-highlight-color:transparent;
+}
+#lt-mb-menu:active{background:var(--bg4)}
+
+/* ── Sidebar overlay backdrop ────────────────────────────────────────────── */
+#lt-sb-overlay{
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,.65);z-index:150;
+  -webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);
+  opacity:0;transition:opacity .25s ease;
+}
+#lt-sb-overlay.active{display:block;opacity:1}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   MOBILE — 768px and below
+   KEY INSIGHT: Keep html/body height:100%+overflow:hidden (iOS scroll pattern).
+   Sidebar becomes position:fixed overlay → .main fills full width naturally.
+   .content stays overflow-y:auto — this IS the scroll container.
+══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+
+  /* ── Sidebar: slide-in overlay drawer ─────────────────────────────────── */
+  .sidebar{
+    position:fixed;
+    top:0;left:0;
+    height:100%;
+    height:100dvh;      /* modern iOS: dynamic viewport */
+    width:min(78vw, 285px);
+    transform:translateX(-110%);
+    transition:transform .28s cubic-bezier(.4,0,.2,1);
+    z-index:200;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    box-shadow:8px 0 40px rgba(0,0,0,.75);
+  }
+  .sidebar.open{transform:translateX(0)}
+
+  /* ── Hamburger: visible ────────────────────────────────────────────────── */
+  #lt-mb-menu{display:flex}
+
+  /* ── Main: fills full width (sidebar is now out of flow via fixed) ─────── */
+  /* IMPORTANT: Keep height:100vh so .content scroll container works on iOS! */
+  .main{width:100%}
+
+  /* ── Topbar ────────────────────────────────────────────────────────────── */
+  .topbar{padding:0 10px;gap:6px;height:52px}
+  .topbar-title{font-size:14px;letter-spacing:.3px}
+  .topbar-sub{display:none}
+  .topbar-actions{gap:4px;margin-left:auto}
+  .topbar-actions .btn{
+    padding:6px 9px;font-size:10px;letter-spacing:.3px;
+    min-height:34px;
+  }
+
+  /* ── Content: the real scroll container — DO NOT change overflow ─────────
+     Add -webkit-overflow-scrolling for smooth iOS momentum scroll          */
+  .content{
+    padding:14px 12px 48px;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior-y:contain;
+  }
+
+  /* ── Grids → single column ─────────────────────────────────────────────── */
+  .grid-2,.grid-3{grid-template-columns:1fr !important;gap:12px !important}
+  .cotizador{grid-template-columns:1fr !important;gap:14px}
+
+  /* KPI: 2-col keeps info density on phone */
+  .kpi-grid{grid-template-columns:repeat(2,1fr) !important;gap:10px !important}
+  .kpi{padding:14px 12px}
+  .kpi-val{font-size:26px}
+  .kpi-icon{font-size:18px;right:10px;top:10px}
+  .kpi-delta{font-size:9px}
+
+  /* FIX: fg-row/fg-row3 are display:grid, not flex — must override columns */
+  .fg-row{grid-template-columns:1fr !important;gap:2px}
+  .fg-row3{grid-template-columns:1fr !important;gap:2px}
+  .fg{margin-bottom:10px}
+
+  /* ── Panels ────────────────────────────────────────────────────────────── */
+  .panel{margin-bottom:12px}
+  .panel-head{padding:11px 12px;flex-wrap:wrap;gap:6px}
+  .panel-title{font-size:12px}
+  .panel-body{padding:12px}
+
+  /* ── Tables: horizontal scroll without breaking layout ─────────────────── */
+  .mod-matrix{overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%}
+  .mod-matrix table{min-width:520px}
+  .panel-body > .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  /* Tables sitting directly inside panel-body (without a .tbl-wrap) */
+  .panel-body > table.tbl{
+    display:block;
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+  }
+  .tbl{min-width:460px;font-size:11px}
+  .tbl td,.tbl th{padding:8px 8px}
+  .tbl-actions{flex-wrap:wrap;gap:4px}
+
+  /* ── Buttons: touch-friendly 44px minimum tap target ───────────────────── */
+  .btn{min-height:40px;padding:8px 13px}
+  .btn-sm{min-height:34px;padding:6px 10px}
+  .btn-green,.btn-ghost,.btn-red,.btn-orange,.btn-cyan{
+    -webkit-tap-highlight-color:transparent;
+  }
+
+  /* ── Modals: bottom sheet (like Linear / Notion mobile) ─────────────────── */
+  .modal-overlay{padding:0;align-items:flex-end}
+  .modal{
+    width:100% !important;max-width:100% !important;
+    border-radius:20px 20px 0 0;
+    max-height:93dvh;max-height:93vh;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    margin:0;padding:24px 16px 40px;
+  }
+  .modal-title{font-size:22px}
+  .modal-sub{font-size:11px;margin-bottom:14px;padding-bottom:12px}
+  .modal-close{
+    top:14px;right:14px;width:34px;height:34px;
+    background:var(--bg3);border-radius:50%;
+  }
+  .modal-footer{
+    position:sticky;bottom:0;
+    background:var(--bg2);
+    padding:12px 0 0;
+    border-top:1px solid var(--brd);
+    margin-top:16px;
+  }
+
+  /* Cotizador editor modal → true fullscreen */
+  #modal-cot-preview{padding:0 !important}
+  #modal-cot-preview > div{
+    border-radius:0 !important;
+    max-width:100% !important;
+    min-height:100dvh;min-height:100vh;
+  }
+  #cot-preview-content{min-height:100dvh;min-height:100vh;border:none}
+
+  /* ── iOS zoom prevention: inputs must be ≥16px ──────────────────────────── */
+  .fi,
+  input:not([type=color]):not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]),
+  select,textarea{
+    font-size:16px !important;
+    -webkit-appearance:none;
+    -moz-appearance:none;
+  }
+  input[type=number]{-moz-appearance:textfield}
+  input[type=number]::-webkit-inner-spin-button,
+  input[type=number]::-webkit-outer-spin-button{opacity:.6}
+
+  /* ── Misc ─────────────────────────────────────────────────────────────────── */
+  /* Search input fills its row in panel headers */
+  .panel-head{flex-wrap:wrap}
+  .panel-head .search-wrap{flex:1;min-width:140px;max-width:100%}
+  .panel-head .search-wrap input{width:100%}
+  .search-wrap{max-width:100%}
+  .section{padding-bottom:28px}
+  .quote-total{padding:16px}
+  .quote-total-val{font-size:42px}
+  .topbar-actions a[href="dashboard.html"]{padding:6px 8px;font-size:10px}
+  .stat-bar-label{width:100px;font-size:10px}
+  .toggle-wrap{padding:10px 10px}
+  .toggle-name{font-size:11px}
+  .toggle-desc{font-size:10px}
+
+  /* Grid-2 section layouts that use inline style */
+  [style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr !important}
+  [style*="grid-template-columns: 1fr 1fr"]{grid-template-columns:1fr !important}
+
+  /* Cotizador plan cards on mobile */
+  .cot-plan-card{padding:12px !important}
+
+  /* Insight cards */
+  .insight-card{padding:12px;gap:10px}
+  .insight-icon{font-size:18px}
+}
+
+/* ── Very small phones (< 390px) ─────────────────────────────────────────── */
+@media (max-width: 390px) {
+  .kpi-grid{grid-template-columns:1fr 1fr !important}
+  .kpi-val{font-size:22px}
+  .topbar-title{font-size:12px}
+  .topbar-actions .btn[onclick*="refreshAll"]{display:none}
+}
+</style>
+</head>
+
+<body>
+
+<!-- Sidebar overlay backdrop (mobile) -->
+<div id="lt-sb-overlay" onclick="ltToggleSidebar(false)"></div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     SIDEBAR
+══════════════════════════════════════════════════════════════════════════ -->
+<aside class="sidebar">
+  <div class="sb-brand" style="flex-direction:column;align-items:flex-start;gap:12px;padding:20px 16px">
+    <!-- Logo + nombre -->
+    <div style="display:flex;align-items:center;gap:10px;width:100%">
+      <div style="width:42px;height:42px;border-radius:9px;background:#0e1018;border:1px solid rgba(57,232,112,.25);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;box-shadow:0 0 14px rgba(57,232,112,.12)">
+        <img src="logo.png" alt="LT" style="width:36px;height:36px;object-fit:contain">
+      </div>
+      <div>
+        <div class="sb-name" style="font-size:13px;letter-spacing:2.5px">Líbero Táctico</div>
+        <div class="sb-role" style="display:flex;align-items:center;gap:4px">
+          <span style="width:5px;height:5px;border-radius:50%;background:var(--green);display:inline-block;box-shadow:0 0 5px var(--green)"></span>
+          Admin Panel
+        </div>
+      </div>
+    </div>
+    <!-- Barra de estado online -->
+    <div style="width:100%;background:rgba(57,232,112,.06);border:1px solid rgba(57,232,112,.15);border-radius:6px;padding:6px 10px;display:flex;align-items:center;justify-content:space-between">
+      <span style="font-family:var(--cond);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--mut)">Sistema</span>
+      <span style="font-family:var(--cond);font-size:9px;font-weight:700;color:var(--green);letter-spacing:1px">● Online</span>
+    </div>
+  </div>
+
+  <div class="sb-section">Principal</div>
+  <nav class="sb-nav">
+    <button class="sb-item active" onclick="showSection('overview')">
+      <span class="icon">📊</span> Overview
+    </button>
+    <button class="sb-item" onclick="showSection('clubs')">
+      <span class="icon">🏟</span> Clubes
+      <span class="badge green" id="sb-clubs-count">—</span>
+    </button>
+    <button class="sb-item" onclick="showSection('modules')">
+      <span class="icon">🧩</span> Módulos
+    </button>
+    <button class="sb-item" onclick="showSection('users')">
+      <span class="icon">👥</span> Usuarios
+      <span class="badge" id="sb-users-count">—</span>
+    </button>
+    <button class="sb-item" onclick="showSection('access')">
+      <span class="icon">🔐</span> Accesos
+    </button>
+  </nav>
+
+  <div class="sb-section">Negocio</div>
+  <nav class="sb-nav">
+    <button class="sb-item" onclick="showSection('billing')">
+      <span class="icon">💰</span> Facturación
+      <span class="badge orange" id="sb-overdue-count" style="display:none">!</span>
+    </button>
+    <button class="sb-item" onclick="showSection('cotizador')">
+      <span class="icon">🧮</span> Cotizador
+    </button>
+    <button class="sb-item" onclick="showSection('analytics')">
+      <span class="icon">📈</span> Analytics
+    </button>
+    <button class="sb-item" onclick="showSection('trials')">
+      <span class="icon">🎁</span> Per. de prueba
+    </button>
+  </nav>
+
+  <div class="sb-section">Comunicación</div>
+  <nav class="sb-nav">
+    <button class="sb-item" onclick="showSection('messages')">
+      <span class="icon">📣</span> Mensajes
+    </button>
+    <button class="sb-item" onclick="showSection('export')">
+      <span class="icon">📤</span> Exportar datos
+    </button>
+  </nav>
+
+  <div class="sb-section">Configuración</div>
+  <nav class="sb-nav">
+    <button class="sb-item" onclick="showSection('personalization')">
+      <span class="icon">🎨</span> Personalización
+    </button>
+    <button class="sb-item" onclick="showSection('cot-config')">
+      <span class="icon">⚙️</span> Config. Cotizador
+    </button>
+  </nav>
+
+  <div class="sb-footer">
+    <div class="sb-user">
+      <div class="sb-avatar" id="sb-avatar">A</div>
+      <div>
+        <div class="sb-user-name" id="sb-user-name">Admin</div>
+        <div class="sb-user-email" id="sb-user-email">—</div>
+      </div>
+    </div>
+    <a href="dashboard.html" class="sb-logout" style="text-decoration:none;display:flex;align-items:center;gap:8px;margin-bottom:6px;background:rgba(57,232,112,.08);border:1px solid rgba(57,232,112,.2);color:var(--green)">
+      <span>🏠</span> Ir al Dashboard
+    </a>
+    <button class="sb-logout" onclick="doLogout()">
+      <span>🚪</span> Cerrar sesión
+    </button>
+  </div>
+</aside>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     MAIN
+══════════════════════════════════════════════════════════════════════════ -->
+<div class="main">
+  <div class="topbar">
+    <button id="lt-mb-menu" onclick="ltToggleSidebar()" title="Menú">☰</button>
+    <div class="topbar-title" id="topbar-title">Overview</div>
+    <div class="topbar-actions">
+      <span class="topbar-sub" id="topbar-date"></span>
+      <a href="dashboard.html" class="btn btn-ghost btn-sm" style="text-decoration:none;color:var(--green);border-color:rgba(57,232,112,.3)" title="Volver al Dashboard">🏠 Dashboard</a>
+      <button class="btn btn-ghost btn-sm" onclick="refreshAll()">↻ Actualizar</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ── OVERVIEW ─────────────────────────────────────────────────────── -->
+    <div id="sec-overview" class="section active">
+      <!-- KPI Row principal -->
+      <div class="kpi-grid" style="margin-bottom:14px">
+        <div class="kpi green"><div class="kpi-icon">🏟</div><div class="kpi-val" id="kpi-clubs">—</div><div class="kpi-label">Clubes activos</div><div class="kpi-delta" id="kpi-clubs-d"></div></div>
+        <div class="kpi orange"><div class="kpi-icon">👥</div><div class="kpi-val" id="kpi-users">—</div><div class="kpi-label">Usuarios totales</div></div>
+        <div class="kpi cyan"><div class="kpi-icon">💰</div><div class="kpi-val" id="kpi-mrr">—</div><div class="kpi-label" id="kpi-mrr-label">MRR (USD)</div></div>
+        <div class="kpi yellow"><div class="kpi-icon">🎁</div><div class="kpi-val" id="kpi-trials">—</div><div class="kpi-label">En trial</div></div>
+      </div>
+      <!-- KPI Row secundario -->
+      <div class="kpi-grid" style="grid-template-columns:1fr 1fr;margin-bottom:20px">
+        <div class="kpi purple"><div class="kpi-icon">📈</div><div class="kpi-val" id="kpi-conv">—</div><div class="kpi-label">Tasa retención</div></div>
+        <div class="kpi green" style="opacity:.8"><div class="kpi-icon">🧾</div><div class="kpi-val" id="kpi-revenue">—</div><div class="kpi-label">Total facturado</div></div>
+      </div>
+
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">Clubes recientes</div>
+            <button class="btn btn-ghost btn-sm" onclick="showSection('clubs')">Ver todos →</button>
+          </div>
+          <div class="panel-body" id="recent-clubs-list"><div class="empty"><div class="empty-icon">🏟</div>Cargando...</div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">Actividad reciente</div>
+            <button class="btn btn-ghost btn-sm" onclick="showSection('access')">Ver log →</button>
+          </div>
+          <div class="panel-body" id="recent-activity"><div class="empty"><div class="empty-icon">📋</div>Cargando...</div></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><div class="panel-title">Adopción de módulos</div><span style="font-size:11px;color:var(--mut)">Módulos activos entre todos los clubes</span></div>
+        <div class="panel-body" id="module-usage-bars"></div>
+      </div>
+    </div>
+
+    <!-- ── CLUBES ────────────────────────────────────────────────────────── -->
+    <div id="sec-clubs" class="section">
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">Clubes registrados</div>
+          <div class="search-wrap"><input type="text" placeholder="Buscar club..." id="clubs-search" oninput="filterClubs()"></div>
+          <button class="btn btn-green btn-sm" onclick="openModal('modal-club')">+ Nuevo club</button>
+        </div>
+        <div class="panel-body" style="padding:0">
+          <table class="tbl" id="clubs-table">
+            <thead><tr>
+              <th>Club</th><th>Plan</th><th>Seats</th><th>Módulos</th><th>Estado</th><th>Precio/mes</th><th>Acciones</th>
+            </tr></thead>
+            <tbody id="clubs-tbody"><tr><td colspan="7" class="empty">Cargando...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── MÓDULOS ───────────────────────────────────────────────────────── -->
+    <div id="sec-modules" class="section">
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">Activación de módulos por club</div>
+          <span style="font-size:11px;color:var(--mut)">Los cambios se guardan automáticamente</span>
+        </div>
+        <div class="panel-body">
+          <div class="mod-matrix">
+            <table id="modules-matrix">
+              <thead><tr>
+                <th>Club</th>
+                <th>📊<br><span style="font-size:8px">Rendimiento</span></th>
+                <th>🔍<br><span style="font-size:8px">Rival</span></th>
+                <th>👁<br><span style="font-size:8px">Scouting</span></th>
+                <th>📋<br><span style="font-size:8px">Evaluación</span></th>
+                <th>📈<br><span style="font-size:8px">Data</span></th>
+                <th>💡<br><span style="font-size:8px">Recomend.</span></th>
+              </tr></thead>
+              <tbody id="modules-tbody"><tr><td colspan="7" class="empty">Cargando...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── USUARIOS ──────────────────────────────────────────────────────── -->
+    <div id="sec-users" class="section">
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">Usuarios del sistema</div>
+          <div class="search-wrap"><input type="text" placeholder="Buscar usuario..." id="users-search" oninput="filterUsers()"></div>
+          <button class="btn btn-green btn-sm" onclick="openModal('modal-user')">+ Nuevo usuario</button>
+        </div>
+        <div class="panel-body" style="padding:0">
+          <table class="tbl">
+            <thead><tr>
+              <th>Usuario</th><th>Rol global</th><th>Club asignado</th><th>Rol en club</th><th>Estado</th><th>Acciones</th>
+            </tr></thead>
+            <tbody id="users-tbody"><tr><td colspan="6" class="empty">Cargando...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ACCESOS ───────────────────────────────────────────────────────── -->
+    <div id="sec-access" class="section">
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">Log de accesos y acciones</div>
+          <div class="topbar-actions">
+            <span style="font-size:11px;color:var(--mut)" id="audit-count"></span>
+            <button class="btn btn-ghost btn-sm" onclick="loadAuditLog()">↻ Refrescar</button>
+            <button class="btn btn-red btn-sm" onclick="clearAllAuditLog()" title="Eliminar todos los registros">🗑 Limpiar todo</button>
+          </div>
+        </div>
+        <div class="panel-body" style="padding:0">
+          <table class="tbl">
+            <thead><tr><th>Usuario</th><th>Club</th><th>Acción</th><th>Fecha / hora</th><th style="width:40px"></th></tr></thead>
+            <tbody id="audit-tbody"><tr><td colspan="5" class="empty">Cargando...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── FACTURACIÓN ───────────────────────────────────────────────────── -->
+    <div id="sec-billing" class="section">
+      <!-- KPIs principales -->
+      <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:14px">
+        <div class="kpi green"><div class="kpi-icon">💰</div><div class="kpi-val" id="bil-mrr">$0</div><div class="kpi-label">MRR (USD equiv.)</div><div class="kpi-delta" id="bil-mrr-delta"></div></div>
+        <div class="kpi orange"><div class="kpi-icon">⚠️</div><div class="kpi-val" id="bil-overdue">0</div><div class="kpi-label">Pagos vencidos</div></div>
+        <div class="kpi cyan"><div class="kpi-icon">📅</div><div class="kpi-val" id="bil-next">$0</div><div class="kpi-label">Próximos 30 días</div></div>
+      </div>
+      <!-- KPIs secundarios -->
+      <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px">
+        <div class="kpi yellow"><div class="kpi-icon">🧾</div><div class="kpi-val" id="bil-total-inv">0</div><div class="kpi-label">Facturas totales</div></div>
+        <div class="kpi green" style="opacity:.8"><div class="kpi-icon">✅</div><div class="kpi-val" id="bil-paid">0</div><div class="kpi-label">Pagadas</div></div>
+        <div class="kpi purple"><div class="kpi-icon">⏳</div><div class="kpi-val" id="bil-pending">0</div><div class="kpi-label">Pendientes</div></div>
+        <div class="kpi red" style="opacity:.8"><div class="kpi-icon">❌</div><div class="kpi-val" id="bil-overdue2">0</div><div class="kpi-label">Vencidas</div></div>
+      </div>
+
+      <div class="grid-2" style="margin-bottom:20px">
+        <!-- Ingresos por moneda -->
+        <div class="panel">
+          <div class="panel-head"><div class="panel-title">Ingresos por moneda</div></div>
+          <div class="panel-body" id="bil-by-currency">
+            <div class="empty"><div class="empty-icon">💱</div>Cargando...</div>
+          </div>
+        </div>
+        <!-- Cobros próximos 30 días -->
+        <div class="panel">
+          <div class="panel-head"><div class="panel-title">Próximos vencimientos</div></div>
+          <div class="panel-body" id="bil-upcoming">
+            <div class="empty"><div class="empty-icon">📆</div>Cargando...</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">Registro de facturas</div>
+          <button class="btn btn-green btn-sm" onclick="newInvoice()">+ Nueva factura</button>
+        </div>
+        <div class="panel-body" style="padding:0">
+          <table class="tbl">
+            <thead><tr><th>Club</th><th>Plan</th><th>Monto</th><th>Vencimiento</th><th>Estado</th><th>Acciones</th></tr></thead>
+            <tbody id="billing-tbody"><tr><td colspan="6" class="empty">Cargando...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── COTIZADOR ─────────────────────────────────────────────────────── -->
+    <div id="sec-cotizador" class="section">
+      <div class="grid-2" style="align-items:start">
+        <div>
+          <!-- Panel: Identidad visual rápida -->
+          <div class="panel" style="margin-bottom:16px;border-color:rgba(57,232,112,.2)">
+            <div class="panel-head" style="background:rgba(57,232,112,.04)">
+              <div class="panel-title">✨ Identidad de la propuesta</div>
+              <span style="font-size:10px;color:var(--mut)">Se refleja en el PDF generado</span>
+            </div>
+            <div class="panel-body">
+              <!-- Logo -->
+              <div class="fg">
+                <label>Logo de la empresa</label>
+                <div class="logo-upload-area" onclick="document.getElementById('cot-logo-file').click()" style="padding:12px;margin-top:4px">
+                  <input type="file" id="cot-logo-file" accept="image/*" style="display:none" onchange="handleCotLogoUpload(this)">
+                  <div id="cot-logo-placeholder" style="text-align:center">
+                    <div style="font-size:24px;margin-bottom:4px">🖼️</div>
+                    <div style="font-size:10px;color:var(--mut)">Clic para subir logo (PNG, SVG, JPG)</div>
+                    <div style="font-size:10px;color:var(--mut);margin-top:2px">Máx 2MB · Aparece en el PDF</div>
+                  </div>
+                  <div id="cot-logo-preview-wrap" style="display:none;flex-direction:column;align-items:center;gap:6px">
+                    <img id="cot-logo-preview" style="height:44px;object-fit:contain;border-radius:6px" src="" alt="Logo">
+                    <span style="font-size:10px;color:var(--green)">✓ Logo cargado</span>
+                  </div>
+                </div>
+                <button id="cot-logo-clear" style="display:none;background:none;border:none;color:var(--mut);font-size:10px;cursor:pointer;margin-top:6px" onclick="clearCotLogo()">✕ Quitar logo</button>
+              </div>
+              <!-- Color de acento -->
+              <div class="fg">
+                <label>Color de acento del PDF</label>
+                <div style="display:flex;gap:8px;align-items:center;margin-top:4px">
+                  <input type="color" id="cot-accent-pick" value="#39e870" oninput="updateCotAccent(this.value)" style="width:38px;height:34px;border:1px solid var(--brd);border-radius:7px;background:none;cursor:pointer;padding:2px">
+                  <input class="fi" id="cot-accent-hex" value="#39e870" placeholder="#39e870" style="flex:1" oninput="updateCotAccent(this.value)">
+                  <div id="cot-accent-swatch" style="width:34px;height:34px;border-radius:7px;background:#39e870;border:1px solid var(--brd);flex-shrink:0"></div>
+                </div>
+              </div>
+              <!-- Empresa y encabezado rápidos -->
+              <div class="fg-row">
+                <div class="fg"><label>Empresa (PDF)</label><input class="fi" id="cot-company-quick" placeholder="Líbero Táctico" oninput="calcCotizador()"></div>
+                <div class="fg"><label>Encabezado PDF</label><input class="fi" id="cot-header-quick" placeholder="PROPUESTA COMERCIAL" oninput="calcCotizador()"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head"><div class="panel-title">Configurar propuesta</div></div>
+            <div class="panel-body">
+              <div class="fg">
+                <label>Nombre del club</label>
+                <input class="fi" id="cot-club" placeholder="ej: Club Atlético..." oninput="calcCotizador()">
+              </div>
+              <div class="fg-row">
+                <div class="fg">
+                  <label>Usuarios (seats)</label>
+                  <select class="fi" id="cot-seats" onchange="calcCotizador()">
+                    <option value="3">3 usuarios</option>
+                    <option value="5" selected>5 usuarios</option>
+                    <option value="10">10 usuarios</option>
+                  </select>
+                </div>
+                <div class="fg">
+                  <label>Moneda</label>
+                  <select class="fi" id="cot-currency" onchange="renderCotizadorPlanSelector();calcCotizador()">
+                    <option value="USD">USD — Dólar</option>
+                    <option value="ARS">ARS — Peso argentino</option>
+                    <option value="CLP">CLP — Peso chileno</option>
+                    <option value="BRL">BRL — Real brasileño</option>
+                    <option value="EUR">EUR — Euro</option>
+                    <option value="GBP">GBP — Libra esterlina</option>
+                    <option value="MXN">MXN — Peso mexicano</option>
+                    <option value="COP">COP — Peso colombiano</option>
+                    <option value="UYU">UYU — Peso uruguayo</option>
+                  </select>
+                </div>
+              </div>
+              <!-- ── Plan base desde Config. Cotizador ── -->
+              <div class="fg" id="cot-plan-selector-wrap">
+                <label style="display:flex;align-items:center;justify-content:space-between">
+                  <span>Plan base</span>
+                  <span style="font-size:9px;color:var(--mut);font-family:var(--body);text-transform:none;letter-spacing:0;font-weight:400">Desde Config. Cotizador</span>
+                </label>
+                <div id="cot-plan-selector" style="display:flex;flex-direction:column;gap:6px;margin-top:4px">
+                  <div style="font-size:11px;color:var(--mut)">Cargando planes…</div>
+                </div>
+              </div>
+
+              <!-- ── Modo personalizado: módulos sueltos ── -->
+              <div id="cot-custom-modules-wrap" style="display:none">
+                <div class="fg">
+                  <label>Módulos incluidos <span style="font-size:9px;color:var(--mut);font-weight:400">(modo personalizado)</span></label>
+                  <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px">
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--txt);font-family:var(--body);text-transform:none;letter-spacing:0"><input type="checkbox" id="cot-m1" checked onchange="calcCotizador()" style="accent-color:var(--green)"> 📊 Rendimiento</label>
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--txt);font-family:var(--body);text-transform:none;letter-spacing:0"><input type="checkbox" id="cot-m2" checked onchange="calcCotizador()" style="accent-color:var(--green)"> 🔍 Análisis Rival</label>
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--txt);font-family:var(--body);text-transform:none;letter-spacing:0"><input type="checkbox" id="cot-m3" checked onchange="calcCotizador()" style="accent-color:var(--green)"> 👁 Scouting</label>
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--txt);font-family:var(--body);text-transform:none;letter-spacing:0"><input type="checkbox" id="cot-m4" onchange="calcCotizador()" style="accent-color:var(--green)"> 📋 Evaluación</label>
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--txt);font-family:var(--body);text-transform:none;letter-spacing:0"><input type="checkbox" id="cot-m5" onchange="calcCotizador()" style="accent-color:var(--green)"> 📈 Data & visualización</label>
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--txt);font-family:var(--body);text-transform:none;letter-spacing:0"><input type="checkbox" id="cot-m6" onchange="calcCotizador()" style="accent-color:var(--green)"> 💡 Recomendaciones CT</label>
+                  </div>
+                </div>
+              </div>
+              <div class="fg-row">
+                <div class="fg">
+                  <label>Descuento %</label>
+                  <input class="fi" type="number" id="cot-desc" value="0" min="0" max="100" oninput="calcCotizador()">
+                </div>
+                <div class="fg">
+                  <label>Período (meses)</label>
+                  <select class="fi" id="cot-period" onchange="calcCotizador()">
+                    <option value="1">Mensual</option>
+                    <option value="3">Trimestral</option>
+                    <option value="6">Semestral</option>
+                    <option value="12">Anual</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="quote-total" style="margin-bottom:16px">
+            <div style="font-family:var(--cond);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--mut);margin-bottom:8px">Total por mes</div>
+            <div class="quote-total-val" id="cot-total">$0</div>
+            <div class="quote-total-sub" id="cot-total-sub">USD / mes</div>
+            <div style="margin-top:4px;font-size:11px;color:var(--mut)" id="cot-total-period"></div>
+            <div style="margin-top:8px;font-family:var(--cond);font-size:10px;color:var(--orange)" id="cot-discount-line"></div>
+
+            <!-- ── IVA ── -->
+            <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--brd)">
+              <div style="font-family:var(--cond);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--mut);margin-bottom:5px">Impuesto / Documento</div>
+              <select class="fi" id="cot-iva-type" onchange="ltCotIvaChange();calcCotizador()">
+                <option value="normal">Sin IVA (Normal)</option>
+                <option value="boleta">Boleta — 19% IVA</option>
+                <option value="factura">Factura — 19% IVA</option>
+                <option value="custom">Personalizado…</option>
+              </select>
+              <div id="cot-iva-custom-wrap" style="display:none;margin-top:5px;display:none;align-items:center;gap:6px">
+                <input class="fi" id="cot-iva-pct" type="number" min="0" max="100" step="0.5" value="19" placeholder="% IVA" oninput="calcCotizador()" style="width:70px">
+                <span style="font-size:11px;color:var(--mut)">%</span>
+              </div>
+              <div id="cot-iva-info" style="font-family:var(--cond);font-size:10px;color:var(--orange);margin-top:5px;display:none"></div>
+            </div>
+
+            <!-- ── Override manual total ── -->
+            <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--brd)">
+              <div style="font-family:var(--cond);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--mut);margin-bottom:5px">Ajuste manual</div>
+              <div style="display:flex;gap:5px;align-items:center">
+                <input class="fi" id="cot-override" type="number" min="0" placeholder="Total manual (0 = auto)" oninput="calcCotizador()" style="flex:1">
+                <button onclick="document.getElementById('cot-override').value='';calcCotizador()" title="Limpiar override" style="background:none;border:1px solid var(--brd);border-radius:5px;color:var(--mut);cursor:pointer;padding:4px 8px;font-size:11px">✕</button>
+              </div>
+              <div style="font-size:9px;color:var(--mut);margin-top:3px">Dejá en blanco para usar el total calculado</div>
+            </div>
+          </div>
+
+          <!-- Preview de la propuesta -->
+          <div class="panel" style="margin-bottom:12px">
+            <div class="panel-head">
+              <div class="panel-title">Vista previa</div>
+              <span style="font-size:10px;color:var(--mut)">Se actualiza automáticamente</span>
+            </div>
+            <div class="panel-body" style="padding:14px">
+              <div id="cot-preview">
+                <!-- Logo preview (se muestra cuando hay logo cargado) -->
+                <img id="prev-logo" style="height:28px;object-fit:contain;margin-bottom:8px;display:none" src="" alt="">
+                <div style="font-family:var(--cond);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--mut);margin-bottom:6px" id="prev-header-text">PROPUESTA COMERCIAL</div>
+                <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--wht);margin-bottom:2px" id="prev-club-name">— Club —</div>
+                <div style="font-size:11px;color:var(--mut);margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--brd)" id="prev-date"></div>
+                <div id="prev-modules-list" style="display:flex;flex-direction:column;gap:4px;margin-bottom:12px"></div>
+                <div style="display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid var(--brd);font-family:var(--cond);font-size:11px;color:var(--mut)">
+                  <span>Subtotal base</span><span id="prev-subtotal">$0</span>
+                </div>
+                <div id="prev-discount-row" style="display:none;justify-content:space-between;padding:4px 0;font-family:var(--cond);font-size:11px;color:var(--orange)">
+                  <span id="prev-discount-label">Descuento</span><span id="prev-discount-val">-$0</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:10px 0;border-top:1px solid rgba(57,232,112,.2);font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--green)">
+                  <span>TOTAL / MES</span><span id="prev-total">$0</span>
+                </div>
+                <div id="prev-period-total" style="font-size:11px;color:var(--mut);text-align:right;margin-top:-4px"></div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:8px;flex-direction:column">
+            <button class="btn btn-green" style="width:100%;justify-content:center;padding:10px" onclick="previewCotizador()">✏️ Editar y previsualizar propuesta</button>
+            <button class="btn btn-ghost" style="width:100%;justify-content:center" onclick="exportCotizador()">📄 Exportar HTML/PDF (sin editar)</button>
+          </div>
+          <div style="font-size:10px;color:var(--mut);text-align:center;margin-top:6px">El editor abre en pantalla completa con herramientas de texto: negrita, color, fuente, logo y más</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ANALYTICS ─────────────────────────────────────────────────────── -->
+    <div id="sec-analytics" class="section">
+      <div class="kpi-grid">
+        <div class="kpi cyan"><div class="kpi-icon">🔑</div><div class="kpi-val" id="an-logins">—</div><div class="kpi-label">Logins este mes</div></div>
+        <div class="kpi green"><div class="kpi-icon">📊</div><div class="kpi-val" id="an-saves">—</div><div class="kpi-label">Guardados de datos</div></div>
+        <div class="kpi orange"><div class="kpi-icon">😴</div><div class="kpi-val" id="an-inactive">—</div><div class="kpi-label">Clubes inactivos +7d</div></div>
+        <div class="kpi purple"><div class="kpi-icon">⭐</div><div class="kpi-val" id="an-top">—</div><div class="kpi-label">Módulo más usado</div></div>
+      </div>
+      <div class="grid-2" style="margin-bottom:20px">
+        <div class="panel">
+          <div class="panel-head"><div class="panel-title">Uso por módulo</div></div>
+          <div class="panel-body" id="analytics-modules"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><div class="panel-title">Clubes más activos</div></div>
+          <div class="panel-body" id="analytics-clubs"></div>
+        </div>
+      </div>
+
+      <!-- AI Insights -->
+      <div class="panel">
+        <div class="panel-head" style="background:linear-gradient(90deg,rgba(167,139,250,.06),transparent)">
+          <div class="panel-title">
+            <span style="background:linear-gradient(90deg,#a78bfa,#3dc8f5);-webkit-background-clip:text;-webkit-text-fill-color:transparent">✦ Estrategia IA</span>
+            <span style="font-family:var(--body);font-size:10px;color:var(--mut);font-weight:400;margin-left:6px">Sugerencias automáticas para mejorar tus métricas</span>
+          </div>
+          <button class="btn btn-sm" style="background:rgba(167,139,250,.1);color:var(--purple);border-color:rgba(167,139,250,.3)" onclick="loadAIInsights()">↻ Actualizar análisis</button>
+        </div>
+        <div class="panel-body">
+          <div id="ai-insights-container">
+            <div class="empty"><div class="empty-icon">✦</div>Cargando análisis estratégico...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TRIALS ────────────────────────────────────────────────────────── -->
+    <div id="sec-trials" class="section">
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">Gestión de períodos de prueba</div>
+          <button class="btn btn-orange btn-sm" onclick="openModal('modal-trial')">+ Nuevo período</button>
+        </div>
+        <div class="panel-body" style="padding:0">
+          <table class="tbl">
+            <thead><tr><th>Club</th><th>Inicio período</th><th>Vencimiento</th><th>Días restantes</th><th>Estado</th><th>Acciones</th></tr></thead>
+            <tbody id="trials-tbody"><tr><td colspan="6" class="empty">Cargando...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── MENSAJES ──────────────────────────────────────────────────────── -->
+    <div id="sec-messages" class="section">
+
+      <!-- Compose panel -->
+      <div class="panel" style="margin-bottom:20px;border-color:rgba(57,232,112,.15)">
+        <div class="panel-head" style="background:linear-gradient(90deg,rgba(57,232,112,.06),transparent)">
+          <div class="panel-title">✉️ Nuevo mensaje</div>
+          <div style="font-size:11px;color:var(--mut)">Los mensajes llegan al panel de cada club</div>
+        </div>
+        <div class="panel-body">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+            <div class="fg" style="margin:0">
+              <label>Destinatario</label>
+              <select class="fi" id="msg-to">
+                <option value="all">📢 Broadcast — Todos los usuarios</option>
+              </select>
+            </div>
+            <div class="fg" style="margin:0">
+              <label>Tipo de mensaje</label>
+              <select class="fi" id="msg-type">
+                <option value="announcement">📣 Anuncio general</option>
+                <option value="warning">⚠️ Aviso importante</option>
+                <option value="system">🔧 Mantenimiento / Sistema</option>
+                <option value="invoice">💰 Facturación</option>
+              </select>
+            </div>
+          </div>
+          <!-- Type preview chips -->
+          <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+            <div style="font-size:10px;color:var(--mut);align-self:center">Previsualización de tipo:</div>
+            <span style="background:rgba(61,200,245,.12);color:#3dc8f5;border:1px solid rgba(61,200,245,.3);border-radius:20px;padding:2px 10px;font-size:10px;font-weight:700">📣 ANUNCIO</span>
+            <span style="background:rgba(249,115,22,.12);color:#f97316;border:1px solid rgba(249,115,22,.3);border-radius:20px;padding:2px 10px;font-size:10px;font-weight:700">⚠️ AVISO</span>
+            <span style="background:rgba(167,139,250,.12);color:#a78bfa;border:1px solid rgba(167,139,250,.3);border-radius:20px;padding:2px 10px;font-size:10px;font-weight:700">🔧 SISTEMA</span>
+            <span style="background:rgba(57,232,112,.12);color:var(--green);border:1px solid rgba(57,232,112,.3);border-radius:20px;padding:2px 10px;font-size:10px;font-weight:700">💰 FACTURA</span>
+          </div>
+          <div class="fg"><label>Asunto</label><input class="fi" id="msg-subject" placeholder="Escribe el asunto del mensaje..."></div>
+          <div class="fg">
+            <label>Cuerpo del mensaje</label>
+            <textarea class="fi" id="msg-body" rows="5" placeholder="Escribe el contenido del mensaje acá..." style="resize:vertical;line-height:1.6"></textarea>
+          </div>
+          <!-- Webhook para email (opcional) -->
+          <div class="fg" style="margin-bottom:0">
+            <label style="display:flex;align-items:center;gap:6px">
+              <span>Webhook de email</span>
+              <span style="font-size:9px;color:var(--mut);font-weight:400;font-family:var(--body);text-transform:none;letter-spacing:0">(opcional — Make, Zapier, n8n…)</span>
+            </label>
+            <input class="fi" id="msg-email-webhook" placeholder="https://hook.make.com/..." oninput="ltSaveWebhook(this.value)" style="font-size:11px">
+            <div style="font-size:9px;color:var(--mut);margin-top:3px">Si se configura, al enviar un mensaje se hace POST con JSON al webhook. Puede usarse para enviar emails con Make.com, Zapier, etc.</div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;margin-top:12px">
+            <button class="btn btn-green" style="flex:1;justify-content:center;padding:10px" onclick="sendMessage()">📤 Enviar mensaje</button>
+            <div style="font-size:10px;color:var(--mut);text-align:right;line-height:1.5">Los mensajes se guardan<br>en la base de datos</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sent messages panel -->
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">📬 Mensajes enviados</div>
+          <button class="btn btn-ghost btn-sm" onclick="loadMessages()">↻ Actualizar</button>
+        </div>
+        <div class="panel-body" id="messages-list">
+          <div class="empty"><div class="empty-icon">📭</div>Sin mensajes enviados</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── EXPORTAR ──────────────────────────────────────────────────────── -->
+    <div id="sec-export" class="section">
+      <div class="panel" style="margin-bottom:20px">
+        <div class="panel-head"><div class="panel-title">Exportar datos del sistema</div></div>
+        <div class="panel-body">
+          <div class="grid-3">
+            <!-- Clubes -->
+            <div style="background:var(--bg3);border:1px solid var(--brd);border-radius:10px;padding:20px;text-align:center">
+              <div style="font-size:32px;margin-bottom:10px">🏟</div>
+              <div style="font-family:var(--cond);font-weight:700;color:var(--wht);margin-bottom:4px">Todos los clubes</div>
+              <div style="font-size:11px;color:var(--mut);margin-bottom:14px">Lista completa con estado y plan</div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <button class="btn btn-ghost btn-sm" style="width:100%;justify-content:center" onclick="exportData('clubs','json')">{ } JSON</button>
+                <button class="btn btn-cyan btn-sm" style="width:100%;justify-content:center" onclick="exportData('clubs','excel')">📊 Excel</button>
+                <button class="btn btn-orange btn-sm" style="width:100%;justify-content:center" onclick="exportData('clubs','pdf')">📄 PDF</button>
+              </div>
+            </div>
+            <!-- Usuarios -->
+            <div style="background:var(--bg3);border:1px solid var(--brd);border-radius:10px;padding:20px;text-align:center">
+              <div style="font-size:32px;margin-bottom:10px">👥</div>
+              <div style="font-family:var(--cond);font-weight:700;color:var(--wht);margin-bottom:4px">Todos los usuarios</div>
+              <div style="font-size:11px;color:var(--mut);margin-bottom:14px">Perfiles, roles y asignaciones</div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <button class="btn btn-ghost btn-sm" style="width:100%;justify-content:center" onclick="exportData('users','json')">{ } JSON</button>
+                <button class="btn btn-cyan btn-sm" style="width:100%;justify-content:center" onclick="exportData('users','excel')">📊 Excel</button>
+                <button class="btn btn-orange btn-sm" style="width:100%;justify-content:center" onclick="exportData('users','pdf')">📄 PDF</button>
+              </div>
+            </div>
+            <!-- Facturación -->
+            <div style="background:var(--bg3);border:1px solid var(--brd);border-radius:10px;padding:20px;text-align:center">
+              <div style="font-size:32px;margin-bottom:10px">💰</div>
+              <div style="font-family:var(--cond);font-weight:700;color:var(--wht);margin-bottom:4px">Facturación</div>
+              <div style="font-size:11px;color:var(--mut);margin-bottom:14px">Todas las facturas e ingresos</div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <button class="btn btn-ghost btn-sm" style="width:100%;justify-content:center" onclick="exportData('invoices','json')">{ } JSON</button>
+                <button class="btn btn-cyan btn-sm" style="width:100%;justify-content:center" onclick="exportData('invoices','excel')">📊 Excel</button>
+                <button class="btn btn-orange btn-sm" style="width:100%;justify-content:center" onclick="exportData('invoices','pdf')">📄 PDF</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Exportar club específico -->
+      <div class="panel">
+        <div class="panel-head"><div class="panel-title">Datos de un club específico</div></div>
+        <div class="panel-body">
+          <div class="fg"><label>Seleccionar club</label>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <select class="fi" id="export-club-select" style="flex:1;min-width:180px"></select>
+              <button class="btn btn-ghost" onclick="exportClubData('json')">{ } JSON</button>
+              <button class="btn btn-cyan" onclick="exportClubData('excel')">📊 Excel</button>
+              <button class="btn btn-orange" onclick="exportClubData('pdf')">📄 PDF</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PERSONALIZACIÓN ──────────────────────────────────────────────── -->
+    <div id="sec-personalization" class="section">
+      <div class="grid-2" style="align-items:start">
+        <div>
+          <div class="panel" style="margin-bottom:16px">
+            <div class="panel-head"><div class="panel-title">Identidad del panel</div></div>
+            <div class="panel-body">
+              <!-- Explicación -->
+              <div style="background:rgba(57,232,112,.06);border:1px solid rgba(57,232,112,.18);border-radius:8px;padding:10px 12px;font-size:11px;color:var(--txt);margin-bottom:14px;line-height:1.6">
+                <div style="font-family:var(--cond);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--green);margin-bottom:4px">¿Qué es la Identidad del panel?</div>
+                Esta información aparece en todas las <b>propuestas comerciales</b>, <b>emails automáticos</b>, <b>boletas / facturas</b> y el <b>pie de página del dashboard</b>. Configurarlo correctamente le da una imagen profesional a tu marca ante los clubes.
+              </div>
+
+              <!-- Logo del panel (diferente al logo del club) -->
+              <div class="fg" style="margin-bottom:10px">
+                <label>Logo de tu empresa / panel</label>
+                <div style="display:flex;align-items:center;gap:10px;margin-top:4px">
+                  <img id="pref-logo-preview" src="logo.png" style="height:40px;max-width:140px;object-fit:contain;border-radius:6px;border:1px solid var(--brd);background:var(--bg3);padding:4px" onerror="this.style.display='none'">
+                  <div>
+                    <input type="file" id="pref-logo-file" accept="image/*" style="display:none" onchange="ltLoadPrefLogo(this)">
+                    <button class="btn btn-ghost btn-sm" onclick="document.getElementById('pref-logo-file').click()">🖼 Cambiar logo</button>
+                    <div style="font-size:9px;color:var(--mut);margin-top:3px">Se usa en PDFs y emails</div>
+                  </div>
+                </div>
+                <input type="hidden" id="pref-logo-b64">
+              </div>
+
+              <div class="fg-row">
+                <div class="fg">
+                  <label>Nombre del panel admin</label>
+                  <input class="fi" id="pref-panel-name" value="Líbero Táctico" placeholder="Nombre del panel admin">
+                </div>
+                <div class="fg">
+                  <label>Nombre de empresa / marca</label>
+                  <input class="fi" id="pref-company" placeholder="ej: Líbero Analytics SRL">
+                </div>
+              </div>
+              <div class="fg">
+                <label>Slogan / Tagline</label>
+                <input class="fi" id="pref-tagline" placeholder="ej: Tecnología al servicio del fútbol">
+              </div>
+              <div class="fg-row">
+                <div class="fg">
+                  <label>Email de soporte</label>
+                  <input class="fi" id="pref-email" type="email" placeholder="soporte@empresa.com">
+                </div>
+                <div class="fg">
+                  <label>WhatsApp / Teléfono</label>
+                  <input class="fi" id="pref-phone" placeholder="+56 9 1234 5678">
+                </div>
+              </div>
+              <div class="fg-row">
+                <div class="fg">
+                  <label>Sitio web</label>
+                  <input class="fi" id="pref-website" placeholder="https://...">
+                </div>
+                <div class="fg">
+                  <label>Dirección física</label>
+                  <input class="fi" id="pref-address" placeholder="ej: Av. Principal 123, Santiago">
+                </div>
+              </div>
+              <div class="fg-row">
+                <div class="fg">
+                  <label>Instagram</label>
+                  <input class="fi" id="pref-instagram" placeholder="@liberotactico">
+                </div>
+                <div class="fg">
+                  <label>Twitter / X</label>
+                  <input class="fi" id="pref-twitter" placeholder="@liberotactico">
+                </div>
+              </div>
+              <div class="fg">
+                <label>CTA en emails / propuestas</label>
+                <input class="fi" id="pref-cta" placeholder="ej: Solicita tu demo gratuita hoy">
+              </div>
+              <div class="fg">
+                <label>Mensaje de bienvenida (dashboard)</label>
+                <textarea class="fi" id="pref-welcome" rows="2" placeholder="Bienvenido a Líbero Táctico..."></textarea>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head"><div class="panel-title">Propuesta comercial</div></div>
+            <div class="panel-body">
+              <div class="fg">
+                <label>Encabezado del PDF</label>
+                <input class="fi" id="pref-pdf-header" placeholder="PROPUESTA COMERCIAL">
+              </div>
+              <div class="fg">
+                <label>Pie de página del PDF</label>
+                <input class="fi" id="pref-pdf-footer" placeholder="Información confidencial — Líbero Táctico">
+              </div>
+              <div class="fg">
+                <label>Texto de garantía</label>
+                <textarea class="fi" id="pref-guarantee" rows="2" placeholder="Garantizamos soporte 24/7 y acceso inmediato..."></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="panel" style="margin-bottom:16px">
+            <div class="panel-head"><div class="panel-title">Color de acento</div></div>
+            <div class="panel-body">
+              <div class="pref-title">Seleccionar color principal</div>
+              <div class="color-swatches" id="color-swatches">
+                <div class="color-swatch active" style="background:#39e870" data-color="#39e870" onclick="selectAccent(this)"></div>
+                <div class="color-swatch" style="background:#3dc8f5" data-color="#3dc8f5" onclick="selectAccent(this)"></div>
+                <div class="color-swatch" style="background:#ff9c2a" data-color="#ff9c2a" onclick="selectAccent(this)"></div>
+                <div class="color-swatch" style="background:#a78bfa" data-color="#a78bfa" onclick="selectAccent(this)"></div>
+                <div class="color-swatch" style="background:#ff3e5e" data-color="#ff3e5e" onclick="selectAccent(this)"></div>
+                <div class="color-swatch" style="background:#ffd93e" data-color="#ffd93e" onclick="selectAccent(this)"></div>
+                <div class="color-swatch" style="background:#f0f0f0" data-color="#f0f0f0" onclick="selectAccent(this)"></div>
+              </div>
+              <div class="fg mt-16">
+                <label>Color personalizado</label>
+                <div style="display:flex;gap:10px;align-items:center">
+                  <input type="color" id="pref-custom-color" value="#39e870" style="width:40px;height:32px;border:none;background:none;cursor:pointer;border-radius:6px">
+                  <input class="fi" id="pref-color-hex" placeholder="#39e870" style="flex:1" oninput="applyCustomColor()">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel" style="margin-bottom:16px">
+            <div class="panel-head"><div class="panel-title">Moneda predeterminada</div></div>
+            <div class="panel-body">
+              <div class="fg">
+                <label>Moneda para cotizaciones</label>
+                <select class="fi" id="pref-default-currency">
+                  <option value="USD">USD — Dólar estadounidense</option>
+                  <option value="ARS">ARS — Peso argentino</option>
+                  <option value="CLP">CLP — Peso chileno</option>
+                  <option value="BRL">BRL — Real brasileño</option>
+                  <option value="EUR">EUR — Euro</option>
+                  <option value="GBP">GBP — Libra esterlina</option>
+                  <option value="MXN">MXN — Peso mexicano</option>
+                  <option value="COP">COP — Peso colombiano</option>
+                  <option value="UYU">UYU — Peso uruguayo</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <button class="btn btn-green" style="width:100%;justify-content:center" onclick="savePersonalization()">💾 Guardar preferencias</button>
+          <div style="margin-top:8px;font-size:11px;color:var(--mut);text-align:center">Las preferencias se guardan localmente en este navegador</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── CONFIG COTIZADOR ──────────────────────────────────────────────── -->
+    <div id="sec-cot-config" class="section">
+
+      <!-- Tabs -->
+      <div style="display:flex;gap:0;margin-bottom:24px;border-bottom:1px solid var(--brd)">
+        <button class="cot-tab" style="padding:11px 20px;background:none;border:none;border-bottom:2px solid var(--green);color:var(--green);font-family:var(--cond);font-size:12px;font-weight:700;letter-spacing:.8px;cursor:pointer;transition:all .15s" onclick="switchCotTab(this,'planes')">📋 PLANES</button>
+        <button class="cot-tab" style="padding:11px 20px;background:none;border:none;border-bottom:2px solid transparent;color:var(--mut);font-family:var(--cond);font-size:12px;font-weight:700;letter-spacing:.8px;cursor:pointer;transition:all .15s" onclick="switchCotTab(this,'textos')">📝 TEXTOS</button>
+        <button class="cot-tab" style="padding:11px 20px;background:none;border:none;border-bottom:2px solid transparent;color:var(--mut);font-family:var(--cond);font-size:12px;font-weight:700;letter-spacing:.8px;cursor:pointer;transition:all .15s" onclick="switchCotTab(this,'contacto')">📞 CONTACTO</button>
+      </div>
+
+      <!-- TAB: PLANES -->
+      <div id="cot-tab-planes" class="cot-tab-content">
+        <div style="font-size:11px;color:var(--mut);margin-bottom:16px;padding:10px 14px;background:rgba(57,232,112,.04);border:1px solid rgba(57,232,112,.1);border-radius:8px">
+          💡 Definí los planes que ofreces. Cada plan puede tener precios distintos por moneda y se usa al generar propuestas desde el Cotizador.
+        </div>
+        <div id="cot-plans-list"></div>
+        <button class="btn btn-ghost" onclick="addCotPlan()" style="width:100%;justify-content:center;border-style:dashed;margin-top:4px">
+          ➕ Agregar plan
+        </button>
+      </div>
+
+      <!-- TAB: TEXTOS -->
+      <div id="cot-tab-textos" class="cot-tab-content" style="display:none">
+        <div class="grid-2" style="align-items:start">
+          <div class="panel">
+            <div class="panel-head"><div class="panel-title">Propuesta comercial</div></div>
+            <div class="panel-body">
+              <div class="fg"><label>Título principal</label><input class="fi" id="cot-cfg-title" placeholder="Propuesta Comercial"></div>
+              <div class="fg"><label>Subtítulo / bajada</label><input class="fi" id="cot-cfg-subtitle" placeholder="Plataforma de análisis táctico para fútbol profesional"></div>
+              <div class="fg"><label>Nombre de empresa / marca</label><input class="fi" id="cot-cfg-company" placeholder="Líbero Táctico"></div>
+              <div class="fg"><label>Llamada a la acción (CTA)</label><input class="fi" id="cot-cfg-cta" placeholder="Comenzá hoy con 14 días de prueba gratuita"></div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><div class="panel-title">PDF de la propuesta</div></div>
+            <div class="panel-body">
+              <div class="fg"><label>Encabezado del PDF</label><input class="fi" id="cot-cfg-pdf-header" placeholder="PROPUESTA COMERCIAL"></div>
+              <div class="fg"><label>Pie de página del PDF</label><input class="fi" id="cot-cfg-pdf-footer" placeholder="Información confidencial — Válida por 15 días"></div>
+              <div class="fg"><label>Texto de garantía / propuesta de valor</label><textarea class="fi" id="cot-cfg-guarantee" rows="4" placeholder="Soporte técnico dedicado, actualizaciones continuas y acceso inmediato desde el primer día."></textarea></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: CONTACTO -->
+      <div id="cot-tab-contacto" class="cot-tab-content" style="display:none">
+        <div class="panel" style="max-width:480px">
+          <div class="panel-head"><div class="panel-title">Datos de contacto para propuestas</div></div>
+          <div class="panel-body">
+            <div class="fg"><label>Email de contacto</label><input class="fi" id="cot-cfg-email" type="email" placeholder="contacto@liberotactico.com"></div>
+            <div class="fg"><label>WhatsApp (con código de país)</label><input class="fi" id="cot-cfg-whatsapp" placeholder="+54 9 11 1234-5678"></div>
+            <div class="fg"><label>Sitio web</label><input class="fi" id="cot-cfg-website" placeholder="www.liberotactico.com"></div>
+            <div style="background:rgba(61,200,245,.06);border:1px solid rgba(61,200,245,.15);border-radius:8px;padding:10px 12px;font-size:11px;color:var(--mut);margin-top:4px">
+              ℹ️ Estos datos aparecen en el pie de página de todas las propuestas comerciales generadas desde el Cotizador.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Botón guardar -->
+      <div style="margin-top:24px;padding-top:20px;border-top:1px solid var(--brd);display:flex;align-items:center;gap:14px">
+        <button class="btn btn-green" style="padding:10px 28px;font-size:12px" onclick="saveCotizadorSettings()">
+          💾 Guardar configuración
+        </button>
+        <span style="font-size:11px;color:var(--mut)">Los cambios se guardan en Supabase y aplican a todas las propuestas generadas.</span>
+      </div>
+
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     MODALS
+══════════════════════════════════════════════════════════════════════════ -->
+
+<!-- Modal: Nuevo/Editar Club -->
+<div class="modal-overlay" id="modal-club">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modal-club')">✕</button>
+    <div class="modal-title" id="modal-club-title">Nuevo club</div>
+    <div class="modal-sub">Completa los datos del club. Podrás asignar módulos y usuarios después.</div>
+    <input type="hidden" id="club-edit-id">
+    <div class="fg-row"><div class="fg"><label>Nombre del club *</label><input class="fi" id="club-name" placeholder="ej: Club Atlético Sud América"></div><div class="fg"><label>Nombre corto</label><input class="fi" id="club-short" placeholder="ej: CASA" maxlength="6"></div></div>
+    <div class="fg-row"><div class="fg"><label>Categoría</label><select class="fi" id="club-cat"><option>Primera</option><option>Reserva</option><option>Formativo</option><option>Amateur</option></select></div><div class="fg"><label>País</label><input class="fi" id="club-country" value="Argentina"></div></div>
+    <div class="fg"><label>Ciudad</label><input class="fi" id="club-city" placeholder="ej: Buenos Aires"></div>
+    <div class="fg-row">
+      <div class="fg"><label>Plan</label><select class="fi" id="club-plan" onchange="updatePlanPrice()"><option value="trial">Trial (gratis)</option><option value="basic">Basic</option><option value="pro">Pro</option><option value="enterprise">Enterprise</option></select></div>
+      <div class="fg"><label>Seats (usuarios)</label><select class="fi" id="club-seats"><option value="3">3 usuarios</option><option value="5" selected>5 usuarios</option><option value="10">10 usuarios</option></select></div>
+    </div>
+    <div class="fg-row"><div class="fg"><label>Precio/mes acordado</label><input class="fi" type="number" id="club-price" placeholder="0" min="0"></div><div class="fg"><label>Moneda</label><select class="fi" id="club-currency"><option value="USD">USD — Dólar</option><option value="ARS">ARS — Peso argentino</option><option value="CLP">CLP — Peso chileno</option><option value="BRL">BRL — Real brasileño</option><option value="EUR">EUR — Euro</option><option value="GBP">GBP — Libra</option><option value="MXN">MXN — Peso mexicano</option><option value="COP">COP — Peso colombiano</option><option value="UYU">UYU — Peso uruguayo</option></select></div></div>
+    <div class="fg">
+      <label>Logo del club</label>
+      <div class="logo-upload-area" id="logo-upload-area" onclick="document.getElementById('club-logo-file').click()">
+        <input type="file" id="club-logo-file" accept="image/*" style="display:none" onchange="previewClubLogo(this)">
+        <div id="logo-upload-placeholder">
+          <div style="font-size:28px;margin-bottom:6px">🏟</div>
+          <div style="font-family:var(--cond);font-size:10px;letter-spacing:1px;color:var(--mut)">Clic para subir logo (PNG, JPG, SVG)</div>
+          <div style="font-size:10px;color:var(--mut);margin-top:2px">Máx 500KB · Se guardará como base64</div>
+        </div>
+        <div id="logo-upload-preview" style="display:none;flex-direction:column;align-items:center;gap:8px">
+          <img id="logo-preview-img" class="logo-preview" src="" alt="Logo">
+          <span style="font-size:10px;color:var(--green)">✓ Logo listo</span>
+        </div>
+      </div>
+      <input type="hidden" id="club-logo-b64">
+    </div>
+    <div class="fg"><label>Notas internas</label><textarea class="fi" id="club-notes" rows="2" placeholder="Observaciones, contacto, etc..."></textarea></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-club')">Cancelar</button>
+      <button class="btn btn-green" onclick="saveClub()">Guardar club</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Nuevo/Editar Usuario -->
+<div class="modal-overlay" id="modal-user">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modal-user')">✕</button>
+    <div class="modal-title" id="modal-user-title">Nuevo usuario</div>
+    <div class="modal-sub">Crea el usuario en Supabase Auth y asígnale un rol y club.</div>
+    <input type="hidden" id="user-edit-id">
+    <div class="fg-row">
+      <!-- Avatar + Club logo -->
+      <div class="fg" style="max-width:110px;align-items:center">
+        <label>Foto</label>
+        <div style="position:relative;width:72px;cursor:pointer" onclick="document.getElementById('user-avatar-file').click()">
+          <input type="file" id="user-avatar-file" accept="image/*" style="display:none" onchange="previewUserAvatar(this)">
+          <input type="hidden" id="user-avatar-b64">
+          <div id="user-avatar-placeholder" style="display:flex;width:72px;height:72px;border-radius:50%;border:2px dashed var(--brd);background:var(--bg3);align-items:center;justify-content:center;flex-direction:column;gap:4px">
+            <span style="font-size:20px">👤</span>
+            <span style="font-size:8px;color:var(--mut);text-align:center">Subir<br>foto</span>
+          </div>
+          <img id="user-avatar-preview" src="" alt="" style="display:none;width:72px;height:72px;border-radius:50%;object-fit:cover;border:2px solid rgba(57,232,112,.4)">
+          <!-- Club logo badge (bottom-right corner of avatar) -->
+          <div id="user-club-logo-badge" style="display:none;position:absolute;bottom:-4px;right:-4px;width:28px;height:28px;border-radius:50%;border:2px solid var(--bg1);background:var(--bg2);overflow:hidden;align-items:center;justify-content:center;font-size:14px"></div>
+        </div>
+        <button onclick="clearUserAvatar()" style="background:none;border:none;color:var(--mut);font-size:9px;cursor:pointer;margin-top:6px;padding:0">✕ quitar</button>
+      </div>
+      <div style="flex:1">
+        <div class="fg-row"><div class="fg"><label>Nombre completo</label><input class="fi" id="user-name" placeholder="ej: Juan Pérez"></div><div class="fg"><label>Email *</label><input class="fi" type="email" id="user-email" placeholder="juan@club.com"></div></div>
+        <div class="fg-row">
+          <div class="fg">
+            <label>Rol global</label>
+            <select class="fi" id="user-role" onchange="ltHandleRoleChange('user-role','user-role-custom')">
+              <optgroup label="Administración">
+                <option value="admin">Admin</option>
+                <option value="gerente">Gerente</option>
+                <option value="director">Director</option>
+                <option value="representante">Representante</option>
+              </optgroup>
+              <optgroup label="Cuerpo técnico">
+                <option value="dt">Director Técnico</option>
+                <option value="ayudante_tecnico">Ayudante Técnico</option>
+                <option value="entrenador_porteros">Entrenador de Porteros</option>
+                <option value="preparador_fisico">Preparador Físico</option>
+              </optgroup>
+              <optgroup label="Análisis">
+                <option value="analista">Analista</option>
+                <option value="analista_rendimiento">Analista de Rendimiento</option>
+                <option value="analista_rival">Analista Rival</option>
+                <option value="analista_mercado">Analista de Mercado</option>
+              </optgroup>
+              <optgroup label="Captación">
+                <option value="scout">Scout</option>
+              </optgroup>
+              <option value="personalizado">✏ Personalizado…</option>
+            </select>
+            <input class="fi" id="user-role-custom" placeholder="Ej: Preparador físico" style="display:none;margin-top:4px" maxlength="60">
+          </div>
+          <div class="fg"><label>Club asignado</label><select class="fi" id="user-club"><option value="">— Sin club —</option></select></div>
+        </div>
+        <div class="fg">
+          <label>Rol en el club</label>
+          <select class="fi" id="user-club-role" onchange="ltHandleRoleChange('user-club-role','user-club-role-custom')">
+            <optgroup label="Dirección">
+              <option value="director">Director</option>
+              <option value="gerente">Gerente</option>
+              <option value="representante">Representante</option>
+            </optgroup>
+            <optgroup label="Cuerpo técnico">
+              <option value="dt">Director Técnico</option>
+              <option value="ayudante_tecnico">Ayudante Técnico</option>
+              <option value="entrenador_porteros">Entrenador de Porteros</option>
+              <option value="preparador_fisico">Preparador Físico</option>
+            </optgroup>
+            <optgroup label="Análisis">
+              <option value="analista">Analista</option>
+              <option value="analista_rendimiento">Analista de Rendimiento</option>
+              <option value="analista_rival">Analista Rival</option>
+              <option value="analista_mercado">Analista de Mercado</option>
+            </optgroup>
+            <optgroup label="Captación">
+              <option value="scout">Scout</option>
+            </optgroup>
+            <option value="personalizado">✏ Personalizado…</option>
+          </select>
+          <input class="fi" id="user-club-role-custom" placeholder="Ej: Preparador físico" style="display:none;margin-top:4px" maxlength="60">
+        </div>
+      </div>
+    </div>
+    <!-- ── Sección Contraseña ─────────────────────────────────────────────── -->
+    <div style="background:rgba(57,232,112,.05);border:1px solid rgba(57,232,112,.18);border-radius:8px;padding:14px;margin-bottom:8px">
+      <div style="font-size:11px;color:var(--green);font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:6px">🔑 Contraseña</div>
+
+      <!-- Para usuario NUEVO -->
+      <div id="user-pwd-new-row">
+        <div style="display:flex;gap:8px;align-items:flex-end">
+          <div class="fg" style="flex:1;position:relative;margin-bottom:0">
+            <label>Contraseña inicial</label>
+            <input class="fi" type="password" id="user-password" placeholder="Mínimo 6 caracteres" autocomplete="new-password" style="padding-right:36px">
+            <button type="button" onclick="ltTogglePwd('user-password','user-pwd-eye1')" id="user-pwd-eye1" style="position:absolute;right:8px;bottom:8px;background:none;border:none;cursor:pointer;color:var(--mut);font-size:15px;line-height:1;padding:0" title="Ver contraseña">👁</button>
+          </div>
+          <button type="button" onclick="ltGenPwd('user-password')" class="btn btn-ghost btn-sm" style="white-space:nowrap;flex-shrink:0;height:36px;margin-bottom:0">⚡ Generar</button>
+        </div>
+        <div style="font-size:10px;color:var(--mut);margin-top:5px">Si la dejás en blanco, se genera una contraseña aleatoria y se guarda para consultar luego.</div>
+        <!-- Opción de confirmación de email — solo para nuevos usuarios -->
+        <div style="margin-top:12px;padding:10px 12px;background:rgba(255,156,42,.06);border:1px solid rgba(255,156,42,.2);border-radius:8px;display:flex;align-items:flex-start;gap:10px">
+          <input type="checkbox" id="user-email-confirm" checked style="margin-top:2px;accent-color:var(--orange);cursor:pointer;width:15px;height:15px;flex-shrink:0">
+          <div>
+            <label for="user-email-confirm" style="font-size:12px;font-weight:600;color:var(--orange);cursor:pointer;display:block;margin-bottom:2px">Acceso inmediato (sin confirmación de email)</label>
+            <div style="font-size:10px;color:var(--mut);line-height:1.5">✅ Marcado: el usuario puede ingresar de inmediato con la contraseña asignada.<br>⬜ Desmarcado: se enviará un email de confirmación al usuario (requiere SMTP configurado en Supabase).</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Para usuario EXISTENTE — 2026-05-12 Sprint1 C.6: las contraseñas no se persisten -->
+      <div id="user-pwd-edit-row" style="display:none">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <div style="flex:1;min-width:200px;font-size:11px;color:var(--mut);line-height:1.5">
+            🔒 Las contraseñas <strong>no se guardan</strong> por seguridad. Si el usuario olvidó la suya, podés:
+            <ul style="margin:6px 0 0 16px;padding:0;font-size:10.5px;color:var(--mut)">
+              <li>Reenviarle el email de recuperación con el botón 📧 de la tabla.</li>
+              <li>O setearle una nueva contraseña directo aquí (✏️ Cambiar).</li>
+            </ul>
+          </div>
+          <button type="button" onclick="ltToggleChangePwd()" id="user-pwd-toggle-btn" class="btn btn-ghost btn-sm" style="white-space:nowrap;flex-shrink:0;height:36px;align-self:flex-start">✏️ Cambiar</button>
+        </div>
+        <!-- Campo para nueva contraseña (oculto hasta que haga click en Cambiar) -->
+        <div id="user-pwd-change-row" style="display:none;margin-top:10px">
+          <div style="display:flex;gap:8px;align-items:flex-end">
+            <div class="fg" style="flex:1;position:relative;margin-bottom:0">
+              <label>Nueva contraseña</label>
+              <input class="fi" type="password" id="user-password-new" placeholder="Mínimo 6 caracteres" autocomplete="new-password" style="padding-right:36px">
+              <button type="button" onclick="ltTogglePwd('user-password-new','user-pwd-eye3')" id="user-pwd-eye3" style="position:absolute;right:8px;bottom:8px;background:none;border:none;cursor:pointer;color:var(--mut);font-size:15px;line-height:1;padding:0" title="Ver contraseña">👁</button>
+            </div>
+            <button type="button" onclick="ltGenPwd('user-password-new')" class="btn btn-ghost btn-sm" style="white-space:nowrap;flex-shrink:0;height:36px;margin-bottom:0">⚡ Generar</button>
+          </div>
+          <div style="font-size:10px;color:var(--mut);margin-top:5px">✓ Se aplica al instante vía la función admin-ops de Supabase — no requiere ninguna key.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-user')">Cancelar</button>
+      <button class="btn btn-green" onclick="saveUser()">Guardar usuario</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Nueva / Editar Factura -->
+<div class="modal-overlay" id="modal-invoice">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modal-invoice')">✕</button>
+    <input type="hidden" id="inv-edit-id">
+    <div class="modal-title" id="modal-invoice-title">Nueva factura</div>
+    <div class="modal-sub">Registrá o editá una factura para un club.</div>
+    <div class="fg"><label>Club</label><select class="fi" id="inv-club"></select></div>
+    <div class="fg-row"><div class="fg"><label>Monto</label><input class="fi" type="number" id="inv-amount" placeholder="0"></div><div class="fg"><label>Moneda</label><select class="fi" id="inv-currency"><option value="USD">USD — Dólar</option><option value="ARS">ARS — Peso argentino</option><option value="CLP">CLP — Peso chileno</option><option value="BRL">BRL — Real brasileño</option><option value="EUR">EUR — Euro</option><option value="GBP">GBP — Libra</option><option value="MXN">MXN — Peso mexicano</option><option value="COP">COP — Peso colombiano</option><option value="UYU">UYU — Peso uruguayo</option></select></div></div>
+    <div class="fg-row"><div class="fg"><label>Período inicio</label><input class="fi" type="date" id="inv-start"></div><div class="fg"><label>Período fin</label><input class="fi" type="date" id="inv-end"></div></div>
+    <div class="fg-row"><div class="fg"><label>Vencimiento</label><input class="fi" type="date" id="inv-due"></div><div class="fg"><label>Estado</label><select class="fi" id="inv-status"><option value="pending">⏳ Pendiente</option><option value="paid">✅ Pagado</option><option value="overdue">🔴 Vencido</option><option value="cancelled">Cancelado</option></select></div></div>
+    <div class="fg"><label>Notas internas</label><textarea class="fi" id="inv-notes" rows="2" placeholder="Ej: Descuento aplicado por pago anticipado..."></textarea></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-invoice')">Cancelar</button>
+      <button class="btn btn-green" onclick="saveInvoice()" id="inv-save-btn">Guardar factura</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Trial -->
+<div class="modal-overlay" id="modal-trial">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modal-trial')">✕</button>
+    <div class="modal-title">Nuevo período de prueba</div>
+    <div class="modal-sub">Activa un período de prueba para un club. Se desactivará automáticamente al vencer.</div>
+    <div class="fg"><label>Club</label><select class="fi" id="trial-club"></select></div>
+    <div class="fg-row"><div class="fg"><label>Duración</label><select class="fi" id="trial-days"><option value="7">7 días</option><option value="14" selected>14 días</option><option value="30">30 días</option></select></div><div class="fg"><label>Fecha inicio</label><input class="fi" type="date" id="trial-start"></div></div>
+    <div class="fg"><label>Módulos incluidos en el período de prueba</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px" id="trial-modules">
+        <label style="font-size:11px;color:var(--txt);display:flex;gap:4px;align-items:center;font-family:var(--body);text-transform:none;letter-spacing:0"><input type="checkbox" value="scouting" style="accent-color:var(--green)"> Scouting</label>
+        <label style="font-size:11px;color:var(--txt);display:flex;gap:4px;align-items:center;font-family:var(--body);text-transform:none;letter-spacing:0"><input type="checkbox" value="rendimiento" style="accent-color:var(--green)"> Rendimiento</label>
+        <label style="font-size:11px;color:var(--txt);display:flex;gap:4px;align-items:center;font-family:var(--body);text-transform:none;letter-spacing:0"><input type="checkbox" value="rival" style="accent-color:var(--green)"> Rival</label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-trial')">Cancelar</button>
+      <button class="btn btn-orange" onclick="saveTrial()">Activar período</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Cotizador Preview (pantalla completa) -->
+<div class="modal-overlay" id="modal-cot-preview" style="align-items:flex-start;padding:0;overflow-y:auto">
+  <div style="background:#fff;width:100%;max-width:760px;margin:auto;min-height:100vh;padding:0;box-shadow:0 0 60px rgba(0,0,0,.8);position:relative">
+    <button onclick="closeModal('modal-cot-preview')" style="position:fixed;top:16px;right:16px;z-index:10;background:#08090d;color:#fff;border:1px solid #333;border-radius:8px;padding:8px 16px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px">✕ CERRAR</button>
+    <button onclick="exportCotizador()" style="position:fixed;top:16px;right:106px;z-index:10;background:#39e870;color:#08090d;border:none;border-radius:8px;padding:8px 16px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px">📄 EXPORTAR PDF</button>
+    <iframe id="cot-preview-content" style="width:100%;min-height:100vh;border:none;background:#fff" sandbox="allow-same-origin allow-scripts allow-popups allow-modals"></iframe>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     SCRIPTS
+══════════════════════════════════════════════════════════════════════════ -->
+<script>
+// ── 2026-05-09 SECURITY FIX (P0.2) ──────────────────────────────────────────
+// ANTES: el admin pegaba su SUPABASE_SERVICE_KEY en un prompt y se guardaba
+// en localStorage. Cualquier extensión de browser maliciosa, acceso físico o
+// dispositivo robado = bypass total de RLS sobre TODO el sistema.
+// AHORA: la service_role NUNCA toca el browser. Las operaciones privilegiadas
+// (crear/eliminar usuarios en auth.users, cambiar passwords, /admin/invite)
+// se hacen via Edge Function `admin-actions` que valida JWT + usa la key
+// server-side. Ver supabase-edge-function-admin-actions.ts.
+//
+// Si el admin todavía tiene la key vieja en localStorage, la borramos.
+(function () {
+  try { localStorage.removeItem('LT_SUPABASE_SERVICE_KEY'); } catch (e) {}
+  // Mantenemos el global por compatibilidad con código viejo, pero vacío:
+  // adminclient.js detecta el string vacío y enruta a la Edge Function.
+  window.SUPABASE_SERVICE_KEY = '';
+  // Helper deprecado, conservado por si alguien lo llama desde consola.
+  window.LT_forgetServiceKey = function () {
+    try { localStorage.removeItem('LT_SUPABASE_SERVICE_KEY'); } catch (e) {}
+    alert('Listo. La service key ya no se almacena en el browser.');
+  };
+})();
+</script>
+<script src="adminclient.js"></script>
+
+<script>
+// ── Mobile sidebar toggle ──────────────────────────────────────────────────
+function ltToggleSidebar(forceState) {
+  var sidebar = document.querySelector('.sidebar');
+  var overlay = document.getElementById('lt-sb-overlay');
+  if (!sidebar) return;
+  var isOpen = sidebar.classList.contains('open');
+  var open   = forceState !== undefined ? !!forceState : !isOpen;
+
+  sidebar.classList.toggle('open', open);
+
+  if (overlay) {
+    if (open) {
+      overlay.style.display = 'block';
+      // Trigger reflow for transition
+      overlay.offsetHeight; // eslint-disable-line no-unused-expressions
+      overlay.classList.add('active');
+    } else {
+      overlay.classList.remove('active');
+      // Hide after transition
+      setTimeout(function(){ overlay.style.display = ''; }, 260);
+    }
+  }
+
+  // Lock body scroll (iOS) when drawer is open
+  // We use a class instead of overflow:hidden to avoid layout shifts
+  document.documentElement.classList.toggle('lt-sidebar-open', open);
+}
+
+// CSS for body scroll lock when sidebar open (injected)
+(function(){
+  var s = document.createElement('style');
+  s.textContent = '.lt-sidebar-open{overflow:hidden!important;position:fixed;width:100%;top:0}';
+  document.head.appendChild(s);
+})();
+
+// ── GUARDIA DE SESIÓN REACTIVA ────────────────────────────────────────────────
+// Si la sesión expira mientras el admin está en el panel, redirige al login.
+(function initAdminSessionGuard() {
+  var sc = window.__supabaseClient;
+  if (!sc) return;
+  sc.auth.onAuthStateChange(function(event, session) {
+    if (event === 'SIGNED_OUT' || (event === 'TOKEN_REFRESHED' && !session)) {
+      window.location.replace('login.html');
+    }
+  });
+})();
+
+// Close sidebar on nav item click (mobile)
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.sb-item, .sb-footer a').forEach(function(el) {
+    el.addEventListener('click', function() {
+      if (window.innerWidth <= 768) ltToggleSidebar(false);
+    });
+  });
+  // Keyboard: close on Escape
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') ltToggleSidebar(false);
+  });
+});
+
+// Resize: always close sidebar when going back to desktop
+window.addEventListener('resize', function() {
+  if (window.innerWidth > 768) ltToggleSidebar(false);
+});
+</script>
+</body>
+</html>
